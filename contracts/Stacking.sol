@@ -13,20 +13,22 @@ contract Staking is Ownable, ReentrancyGuard {
     // Фактор точности
     uint256 public PRECISION_FACTOR;
 
+    uint256 public DEC;
+
     // Жетон награды
     IERC20Metadata public rewardToken;
 
     // Ставка на токен
     IERC20Metadata public stakedToken;
 
-    enum UserLevel {
-        NONE,
-        TINY,
-        SMALL,
-        MEDIUM,
-        BIG,
-        HUGE
-    }
+    // enum UserLevel {
+    //     NONE,
+    //     TINY,
+    //     SMALL,
+    //     MEDIUM,
+    //     BIG,
+    //     HUGE
+    // }
 
     // Информация о каждом пользователе, который ставит токены (stakedToken)
     mapping(address => UserInfo) public userInfo;
@@ -34,7 +36,7 @@ contract Staking is Ownable, ReentrancyGuard {
     struct UserInfo {
         uint256 amount; // How many staked tokens the user has provided
         uint256 rewardDebt; // Reward debt
-        UserLevel level; // Уровень пользователя
+        uint256 level; // Уровень пользователя
         uint256 timeStart; // 
     }
 
@@ -57,8 +59,18 @@ contract Staking is Ownable, ReentrancyGuard {
         uint256 decimalsRewardToken = uint256(_rewardToken.decimals());
         require(decimalsRewardToken < 30, "Must be inferior to 30");
 
+        DEC = uint256(10 ** decimalsRewardToken);
+
         PRECISION_FACTOR = uint256(10**(uint256(30) - decimalsRewardToken));
 
+    }
+
+    function getInfo(address _user) external view returns(UserInfo memory){
+        return userInfo[_user];
+    }
+
+    function getLevel(address _user) external view returns(uint256){
+        return userInfo[_user].level;
     }
 
     /*
@@ -73,6 +85,8 @@ contract Staking is Ownable, ReentrancyGuard {
             if (pending > 0) {
                 rewardToken.safeTransfer(address(msg.sender), pending);
             }
+        } else {
+            user.timeStart = block.timestamp;
         }
 
         if (_amount > 0) {
@@ -91,46 +105,51 @@ contract Staking is Ownable, ReentrancyGuard {
     }
 
     function percentByLevel(UserInfo memory user) internal view returns (uint256) {
-        UserLevel lvl = user.level;
+        uint256 lvl = user.level;
         uint256 percent;
 
-        if (lvl == UserLevel.TINY) {
+        if (lvl == 1) {
             percent = PRECISION_FACTOR * 5 / 100; // 5%
-        } else if (lvl == UserLevel.SMALL) {
+        } else if (lvl == 2) {
             percent = PRECISION_FACTOR * 7 / 100; // 7%
-        } else if (lvl == UserLevel.MEDIUM) {
+        } else if (lvl == 3) {
             percent = PRECISION_FACTOR * 10 / 100; // 10%
-        } else if (lvl == UserLevel.BIG) {
+        } else if (lvl == 4) {
             percent = PRECISION_FACTOR * 15 / 100; // 15%
-        } else if (lvl == UserLevel.HUGE) {
+        } else if (lvl == 5) {
             percent = PRECISION_FACTOR * 20 / 100; // 20%
-        }
+        } 
         return percent;
     }
 
-    function setLevel(UserInfo memory user) internal pure{
+    function setLevel(UserInfo storage user) internal {
+        user.level = 0;
+
         if (user.amount > 0) {
-            user.level = UserLevel.TINY;
-        } else if (user.amount > 100000) {
+            user.level = 1;
+        }
+        if (user.amount >= 1 * DEC) {
             // 0.1M
-            user.level = UserLevel.SMALL;
-        } else if (user.amount > 1000000) {
+            user.level = 2;
+        }
+        if (user.amount >= 3 * DEC) {
             // 1M
-            user.level = UserLevel.MEDIUM;
-        } else if (user.amount > 10000000) {
+            user.level = 3;
+        }
+        if (user.amount >= 7 * DEC) {
             // 10M
-            user.level = UserLevel.BIG;
-        } else if (user.amount > 100000000) {
+            user.level = 4;
+        }
+        if (user.amount >= 10 * DEC) {
             // 100M
-            user.level = UserLevel.HUGE;
-        } else {
-            user.level = UserLevel.NONE;
+            user.level = 5;
         }
     }
 
-    function getRewardDebt(UserInfo memory user) internal view returns (uint256){
+    function getRewardDebt(UserInfo storage user) internal returns (uint256){
+        uint256 reward = rewardPerSek(user) * (block.timestamp - user.timeStart);
         user.timeStart = block.timestamp;
-        return rewardPerSek(user) * (block.timestamp - user.timeStart);
+        return reward;
     }
 
     function rewardPerSek(UserInfo memory user) internal view returns(uint256) {
@@ -154,6 +173,7 @@ contract Staking is Ownable, ReentrancyGuard {
 
         if (pending > 0) {
             rewardToken.safeTransfer(address(msg.sender), pending);
+            user.rewardDebt += pending;
         }
 
         emit Withdraw(msg.sender, _amount);
@@ -180,6 +200,8 @@ contract Staking is Ownable, ReentrancyGuard {
      * @dev Only callable by owner. Needs to be for emergency.
      */
     function emergencyRewardWithdraw(uint256 _amount) external onlyOwner {
+        UserInfo storage user = userInfo[msg.sender];
         rewardToken.safeTransfer(address(msg.sender), _amount);
+        user.rewardDebt += _amount;
     }
 }

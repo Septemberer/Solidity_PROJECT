@@ -25,7 +25,9 @@ const TEN = new BN(10);
 const TWENTY = new BN(20);
 const HUND = new BN(100);
 const DECIMALS = new BN(18);
+const DECIMALS_ = new BN(19);
 const ONE_TOKEN = TEN.pow(DECIMALS);
+const TEN_TOKEN = TEN.pow(DECIMALS_);
 
 
 contract('Staking', ([alice, bob, dev, minter]) => {
@@ -37,13 +39,13 @@ contract('Staking', ([alice, bob, dev, minter]) => {
     before(async () => {
         
         
-        token1 = await MockERC20.new('Token', 'TK1', ONE_TOKEN.mul(HUND), { from: minter });
-        token2 = await MockERC20.new('Token', 'TK2', ONE_TOKEN.mul(HUND), { from: minter });
+        token1 = await MockERC20.new('Token', 'TK1', TEN_TOKEN.mul(HUND), { from: minter });
+        token2 = await MockERC20.new('Token', 'TK2', TEN_TOKEN.mul(HUND), { from: minter });
         staking = await STAKE.new(token1.address, token2.address, { from: dev });
 
-        await token1.transfer(alice, ONE_TOKEN.mul(TEN), { from: minter });
-        await token1.transfer(bob, ONE_TOKEN.mul(TEN), { from: minter });
-        await token2.transfer(staking.address, ONE_TOKEN, { from: minter });
+        await token1.transfer(alice, TEN_TOKEN.mul(TEN), { from: minter });
+        await token1.transfer(bob, TEN_TOKEN.mul(TEN), { from: minter });
+        await token2.transfer(staking.address, TEN_TOKEN, { from: minter });
         this.snapshotA = await snapshot();
     })
 
@@ -52,13 +54,26 @@ contract('Staking', ([alice, bob, dev, minter]) => {
     })
 
     it('Deposit/Withdraw', async () => {
-        await token1.approve(staking.address, ONE_TOKEN.mul(TEN), { from: alice });
-        await staking.deposit(ONE_TOKEN, { from: alice});
+        await token1.approve(staking.address, TEN_TOKEN.mul(TEN), { from: alice });
+        await staking.deposit(ONE_TOKEN, { from: alice });
+        let alice_inf;
 
-        await time.advanceBlockTo(160);
+        expect(await staking.getLevel(alice)).to.be.bignumber.eq(TWO);
+
+        await staking.deposit(ONE_TOKEN, { from: alice });
+        await staking.deposit(ONE_TOKEN, { from: alice });
+
+        expect(await staking.getLevel(alice)).to.be.bignumber.eq(THREE);
+
+        await time.increase(500);
 
         await staking.withdraw('0', { from: alice });
-        expect(await token2.balanceOf(alice)).to.be.bignumber.eq(ONE_TOKEN);
+
+        alice_inf = await staking.getInfo(alice);
+
+        console.log(alice_inf);
+
+        expect(await token2.balanceOf(alice)).to.be.bignumber.eq("4772640791410");
     })
 
     it('Complex math', async () => {
@@ -66,27 +81,36 @@ contract('Staking', ([alice, bob, dev, minter]) => {
         await token1.approve(staking.address, ONE_TOKEN.mul(TEN), { from: alice});
         await token1.approve(staking.address, ONE_TOKEN.mul(TEN), { from: bob});
 
-        let tx = await staking.deposit(ONE_TOKEN, { from: alice});
+        await staking.deposit(ONE_TOKEN, { from: alice});
 
-        await time.advanceBlockTo(74);
+        await time.increase(30);
 
         await staking.deposit(ONE_TOKEN, { from: alice});
 
-        await time.advanceBlockTo(99);
+        expect(await staking.getLevel(alice)).to.be.bignumber.eq(TWO);
+
+        await time.increase(40);
         
         await staking.deposit(ONE_TOKEN, { from: bob});
         
-        await time.advanceBlockTo(124);
+        await time.increase(500);
 
         await staking.deposit(ONE_TOKEN, { from: bob});
 
-        await time.advanceBlockTo(155);
+        await time.increase(5000);
+
+        await staking.deposit(ONE_TOKEN, { from: bob});
+
+        await time.increase(5000);
+
+        expect(await staking.getLevel(alice)).to.be.bignumber.eq(TWO);
+        expect(await staking.getLevel(bob)).to.be.bignumber.eq(THREE);
 
         await staking.withdraw('0', { from: alice });
         await staking.withdraw('0', { from: bob });
 
-        expect(await token2.balanceOf(alice)).to.be.bignumber.eq(new BN('791666666666000000'));
-        expect(await token2.balanceOf(bob)).to.be.bignumber.eq(new BN('208333333333000000'));
+        expect(await token2.balanceOf(alice)).to.be.bignumber.eq(new BN('46877536775666'));
+        expect(await token2.balanceOf(bob)).to.be.bignumber.eq(new BN('70897070010505'));
     })
 
 })
