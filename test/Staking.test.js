@@ -57,7 +57,6 @@ contract('Staking', ([alice, bob, dev, minter]) => {
     it('Deposit/Withdraw', async () => {
         await token1.approve(staking.address, TEN_TOKEN.mul(TEN), { from: alice });
         await staking.deposit(ONE_TOKEN, { from: alice });
-        let alice_inf;
 
         expect(await staking.getLevel(alice)).to.be.bignumber.eq(ONE);
 
