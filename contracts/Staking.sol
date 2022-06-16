@@ -28,6 +28,7 @@ contract Staking is Ownable, ReentrancyGuard {
     struct UserInfo {
         uint256 amount; // How many staked tokens the user has provided
         uint256 level; // Уровень пользователя
+        uint256 rewardDebt; // Сколько выйгрыша выводил пользователь
         uint256 timeStart; // Время с которого считается текущий заработок
     }
 
@@ -42,26 +43,10 @@ contract Staking is Ownable, ReentrancyGuard {
      */
     constructor(
         IERC20Metadata _stakedToken,
-        IERC20Metadata _rewardToken,
-        uint256 _thresholdOf_1_Lvl,
-        uint256 _thresholdOf_2_Lvl,
-        uint256 _thresholdOf_3_Lvl,
-        uint256 _thresholdOf_4_Lvl,
-        uint256 _thresholdOf_5_Lvl,
-        uint256 _percentFor_1_Lvl,
-        uint256 _percentFor_2_Lvl,
-        uint256 _percentFor_3_Lvl,
-        uint256 _percentFor_4_Lvl,
-        uint256 _percentFor_5_Lvl
+        IERC20Metadata _rewardToken
     ) {
         stakedToken = _stakedToken;
         rewardToken = _rewardToken;
-        lvlInfo[0] = [0, 0];
-        lvlInfo[1] = [_thresholdOf_1_Lvl, _percentFor_1_Lvl];
-        lvlInfo[2] = [_thresholdOf_2_Lvl, _percentFor_2_Lvl];
-        lvlInfo[3] = [_thresholdOf_3_Lvl, _percentFor_3_Lvl];
-        lvlInfo[4] = [_thresholdOf_4_Lvl, _percentFor_4_Lvl];
-        lvlInfo[5] = [_thresholdOf_5_Lvl, _percentFor_5_Lvl];
 
         uint256 decimalsRewardToken = uint256(_rewardToken.decimals());
         require(decimalsRewardToken < 30, "Must be inferior to 30");
@@ -99,6 +84,14 @@ contract Staking is Ownable, ReentrancyGuard {
     }
 
     /**
+     * @notice Информация о полученных токенах
+     * @param _user: Адрес интересующего пользователя
+     */
+    function getRDInfo(address _user) external view returns(uint256){
+        return userInfo[_user].rewardDebt;
+    }
+
+    /**
      * @notice Информация об уровне пользователя
      * @param _user: Адрес интересующего пользователя
      */
@@ -117,6 +110,8 @@ contract Staking is Ownable, ReentrancyGuard {
             uint256 pending = getRewardDebt(user);
             if (pending > 0) {
                 rewardToken.safeTransfer(address(_msgSender()), pending);
+                user.rewardDebt += pending;
+                user.timeStart = block.timestamp;
             }
         } 
 
@@ -131,8 +126,6 @@ contract Staking is Ownable, ReentrancyGuard {
                 address(this),
                 _amount
             );
-
-            user.timeStart = block.timestamp;
         }
 
         emit Deposit(_msgSender(), _amount);
@@ -169,7 +162,7 @@ contract Staking is Ownable, ReentrancyGuard {
      * @notice Высчитывает заработок юзера к данному моменту, обнуляет таймер
      * @param user: User про которого надо узнать информацию
      */
-    function getRewardDebt(UserInfo memory user) internal view returns (uint256){
+    function getRewardDebt(UserInfo memory user) public view returns (uint256){
         uint256 reward = (user.amount * lvlInfo[user.level][1]) * (block.timestamp - user.timeStart) / (100 * 365 * 24 * 60 * 60);
         return reward;
     }
@@ -192,6 +185,7 @@ contract Staking is Ownable, ReentrancyGuard {
 
         if (pending > 0) {
             rewardToken.safeTransfer(address(_msgSender()), pending);
+            user.rewardDebt += pending;
             user.timeStart = block.timestamp;
         }
 

@@ -46,6 +46,7 @@ contract('Staking', ([alice, bob, dev, minter]) => {
         await token1.transfer(alice, TEN_TOKEN.mul(TEN), { from: minter });
         await token1.transfer(bob, TEN_TOKEN.mul(TEN), { from: minter });
         await token2.transfer(staking.address, TEN_TOKEN, { from: minter });
+        await staking.setLevelInf(ONE_TOKEN, ONE_TOKEN.mul(THREE), ONE_TOKEN.mul(FIVE), ONE_TOKEN.mul(SEVEN), ONE_TOKEN.mul(TEN), 5, 7, 9, 11, 15, { from: dev })
         this.snapshotA = await snapshot();
     })
 
@@ -58,22 +59,18 @@ contract('Staking', ([alice, bob, dev, minter]) => {
         await staking.deposit(ONE_TOKEN, { from: alice });
         let alice_inf;
 
+        expect(await staking.getLevel(alice)).to.be.bignumber.eq(ONE);
+
+        await staking.deposit(ONE_TOKEN, { from: alice });
+        await staking.deposit(ONE_TOKEN, { from: alice });
+
         expect(await staking.getLevel(alice)).to.be.bignumber.eq(TWO);
-
-        await staking.deposit(ONE_TOKEN, { from: alice });
-        await staking.deposit(ONE_TOKEN, { from: alice });
-
-        expect(await staking.getLevel(alice)).to.be.bignumber.eq(THREE);
 
         await time.increase(500);
 
         await staking.withdraw('0', { from: alice });
 
-        alice_inf = await staking.getInfo(alice);
-
-        console.log(alice_inf);
-
-        expect(await token2.balanceOf(alice)).to.be.bignumber.eq("4772640791410");
+        expect(await token2.balanceOf(alice)).to.be.bignumber.eq(await staking.getRDInfo(alice));
     })
 
     it('Complex math', async () => {
@@ -87,7 +84,7 @@ contract('Staking', ([alice, bob, dev, minter]) => {
 
         await staking.deposit(ONE_TOKEN, { from: alice});
 
-        expect(await staking.getLevel(alice)).to.be.bignumber.eq(TWO);
+        expect(await staking.getLevel(alice)).to.be.bignumber.eq(ONE);
 
         await time.increase(40);
         
@@ -103,14 +100,14 @@ contract('Staking', ([alice, bob, dev, minter]) => {
 
         await time.increase(5000);
 
-        expect(await staking.getLevel(alice)).to.be.bignumber.eq(TWO);
-        expect(await staking.getLevel(bob)).to.be.bignumber.eq(THREE);
+        expect(await staking.getLevel(alice)).to.be.bignumber.eq(ONE);
+        expect(await staking.getLevel(bob)).to.be.bignumber.eq(TWO);
 
         await staking.withdraw('0', { from: alice });
         await staking.withdraw('0', { from: bob });
 
-        expect(await token2.balanceOf(alice)).to.be.bignumber.eq(new BN('46877536775666'));
-        expect(await token2.balanceOf(bob)).to.be.bignumber.eq(new BN('70897070010505'));
+        expect(await token2.balanceOf(alice)).to.be.bignumber.eq(await staking.getRDInfo(alice));
+        expect(await token2.balanceOf(bob)).to.be.bignumber.eq(await staking.getRDInfo(bob));
     })
 
 })
