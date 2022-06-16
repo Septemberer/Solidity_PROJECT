@@ -13,6 +13,7 @@ contract Staking is Ownable, ReentrancyGuard {
     // Фактор точности
     uint256 public PRECISION_FACTOR;
 
+    // Сколько wei в одном токене
     uint256 public DEC;
 
     // Жетон награды
@@ -65,10 +66,20 @@ contract Staking is Ownable, ReentrancyGuard {
 
     }
 
+
+    /*
+     * @notice Сводная информация по пользователю
+     * @param _user: Адрес интересующего пользователя
+     */
     function getInfo(address _user) external view returns(UserInfo memory){
         return userInfo[_user];
     }
 
+
+    /*
+     * @notice Информация об уровне пользователя
+     * @param _user: Адрес интересующего пользователя
+     */
     function getLevel(address _user) external view returns(uint256){
         return userInfo[_user].level;
     }
@@ -104,6 +115,10 @@ contract Staking is Ownable, ReentrancyGuard {
         emit Deposit(msg.sender, _amount);
     }
 
+    /*
+     * @notice Показывает процент для заработка юзера по его уровню
+     * @param user: User про которого надо узнать информацию
+     */
     function percentByLevel(UserInfo memory user) internal view returns (uint256) {
         uint256 lvl = user.level;
         uint256 percent;
@@ -122,6 +137,10 @@ contract Staking is Ownable, ReentrancyGuard {
         return percent;
     }
 
+    /*
+     * @notice Задает уровень юзера по его вложенным средствам
+     * @param user: User про которого надо узнать информацию
+     */
     function setLevel(UserInfo storage user) internal {
         user.level = 0;
 
@@ -129,29 +148,38 @@ contract Staking is Ownable, ReentrancyGuard {
             user.level = 1;
         }
         if (user.amount >= 1 * DEC) {
-            // 0.1M
+            // 1 TOKEN
             user.level = 2;
         }
         if (user.amount >= 3 * DEC) {
-            // 1M
+            // 3 TOKEN
             user.level = 3;
         }
         if (user.amount >= 7 * DEC) {
-            // 10M
+            // 7 TOKEN
             user.level = 4;
         }
         if (user.amount >= 10 * DEC) {
-            // 100M
+            // 10 TOKEN
             user.level = 5;
         }
     }
 
+
+    /*
+     * @notice Высчитывает заработок юзера к данному моменту, обнуляет таймер
+     * @param user: User про которого надо узнать информацию
+     */
     function getRewardDebt(UserInfo storage user) internal returns (uint256){
         uint256 reward = rewardPerSek(user) * (block.timestamp - user.timeStart);
         user.timeStart = block.timestamp;
         return reward;
     }
 
+    /*
+     * @notice Показывает заработок юзера в секунду
+     * @param user: User про которого надо узнать информацию
+     */
     function rewardPerSek(UserInfo memory user) internal view returns(uint256) {
         return ((user.amount * percentByLevel(user)) / (PRECISION_FACTOR * 365 * 24 * 60 * 60));
     }
