@@ -112,35 +112,37 @@ contract Staking is Ownable, ReentrancyGuard {
      * @notice Deposit staked tokens and collect reward tokens (if any)
      * @param _amount: amount to withdraw (in rewardToken)
      */
-    function deposit(uint256 _amount) external nonReentrant {
+    function deposit(uint256 _amount) external nonReentrant returns(uint256) {
         address _adr = _msgSender();
         UserInfo storage user = userInfo[_adr];
+        uint256 pending;
 
         if (user.amount > 0) {
-            uint256 pending = getRewardDebt(_adr);
+            pending = getRewardDebt(_adr);
             if (pending > 0) {
                 user.rewardDebt += pending;
                 user.timeStart = block.timestamp;
                 rewardToken.safeTransfer(
-                    address(_adr),
+                    _adr,
                     pending
                 );
             }
-        } 
+        } else {
+            user.timeStart = block.timestamp;
+        }
 
         if (_amount > 0) {
             user.amount = user.amount + _amount;
-
             user.level = getLevel(user.amount);
-
             stakedToken.safeTransferFrom(
-                address(_adr),
+                _adr,
                 address(this),
                 _amount
             );
         }
 
         emit Deposit(_adr, _amount);
+        return pending;
     }
 
     /**
@@ -162,7 +164,6 @@ contract Staking is Ownable, ReentrancyGuard {
         } else {
             return 0;
         }
-
     }
 
 
@@ -170,7 +171,7 @@ contract Staking is Ownable, ReentrancyGuard {
      * @notice Withdraw staked tokens and collect reward tokens
      * @param _amount: amount to withdraw (in stakedToken)
      */
-    function withdraw(uint256 _amount) external nonReentrant {
+    function withdraw(uint256 _amount) external nonReentrant returns (uint256){
         address _adr = _msgSender();
         UserInfo storage user = userInfo[_adr];
         require(user.amount >= _amount, "Amount to withdraw too high");
@@ -180,16 +181,17 @@ contract Staking is Ownable, ReentrancyGuard {
         if (_amount > 0) {
             user.amount = user.amount - _amount;
             user.level = getLevel(user.amount);
-            stakedToken.safeTransfer(address(_adr), _amount);
+            stakedToken.safeTransfer(_adr, _amount);
         }
 
         if (pending > 0) {
-            rewardToken.safeTransfer(address(_adr), pending);
             user.rewardDebt += pending;
             user.timeStart = block.timestamp;
+            rewardToken.safeTransfer(_adr, pending);
         }
 
         emit Withdraw(_adr, _amount);
+        return pending;
     }
 
     /**
@@ -204,7 +206,7 @@ contract Staking is Ownable, ReentrancyGuard {
         user.level = getLevel(user.amount);
 
         if (amountToTransfer > 0) {
-            stakedToken.safeTransfer(address(_adr), amountToTransfer);
+            stakedToken.safeTransfer(_adr, amountToTransfer);
         }
 
         emit EmergencyWithdraw(_adr, amountToTransfer);

@@ -68,21 +68,26 @@ contract('Staking', ([alice, bob, dev, minter]) => {
     })
 
     it('Deposit/Withdraw', async () => {
+        let alice_balance;
+
         await token1.approve(staking.address, TEN_TOKEN.mul(TEN), { from: alice });
-        await staking.deposit(ONE_TOKEN, { from: alice });
 
-        expect(await staking.getLevel(alice)).to.be.bignumber.eq(ONE);
+        alice_balance -= BN(await staking.deposit(ONE_TOKEN, { from: alice }));
+        console.log(alice_balance);
 
-        await staking.deposit(ONE_TOKEN, { from: alice });
-        await staking.deposit(ONE_TOKEN, { from: alice });
+        expect(await staking.getLevelInfo(alice)).to.be.bignumber.eq(ONE);
 
-        expect(await staking.getLevel(alice)).to.be.bignumber.eq(TWO);
+        alice_balance -= await staking.deposit(ONE_TOKEN.mul(TWO), { from: alice });
+        console.log(alice_balance);
 
-        await time.increase(500);
+        expect(await staking.getLevelInfo(alice)).to.be.bignumber.eq(TWO);
 
-        await staking.withdraw('0', { from: alice });
+        await time.increase(5000);
 
-        expect(await token2.balanceOf(alice)).to.be.bignumber.eq(await staking.getRDInfo(alice));
+        alice_balance -= await staking.withdraw('0', { from: alice });
+        console.log(alice_balance);
+
+        expect(await token2.balanceOf(alice)).to.be.bignumber.eq(-alice_balance);
     })
 
     it('Complex math', async () => {
@@ -96,7 +101,7 @@ contract('Staking', ([alice, bob, dev, minter]) => {
 
         await staking.deposit(ONE_TOKEN, { from: alice});
 
-        expect(await staking.getLevel(alice)).to.be.bignumber.eq(ONE);
+        expect(await staking.getLevelInfo(alice)).to.be.bignumber.eq(ONE);
 
         await time.increase(40);
         
@@ -112,8 +117,8 @@ contract('Staking', ([alice, bob, dev, minter]) => {
 
         await time.increase(5000);
 
-        expect(await staking.getLevel(alice)).to.be.bignumber.eq(ONE);
-        expect(await staking.getLevel(bob)).to.be.bignumber.eq(TWO);
+        expect(await staking.getLevelInfo(alice)).to.be.bignumber.eq(ONE);
+        expect(await staking.getLevelInfo(bob)).to.be.bignumber.eq(TWO);
 
         await staking.withdraw('0', { from: alice });
         await staking.withdraw('0', { from: bob });
