@@ -35,6 +35,12 @@ contract('Staking', ([alice, bob, dev, minter]) => {
     let staking;
     let token1;
     let token2;
+    let lvl1;
+    let lvl2;
+    let lvl3;
+    let lvl4;
+    let lvl5;
+
 
     before(async () => {
         
@@ -46,7 +52,14 @@ contract('Staking', ([alice, bob, dev, minter]) => {
         await token1.transfer(alice, TEN_TOKEN.mul(TEN), { from: minter });
         await token1.transfer(bob, TEN_TOKEN.mul(TEN), { from: minter });
         await token2.transfer(staking.address, TEN_TOKEN, { from: minter });
-        await staking.setLevelInf(ONE_TOKEN, ONE_TOKEN.mul(THREE), ONE_TOKEN.mul(FIVE), ONE_TOKEN.mul(SEVEN), ONE_TOKEN.mul(TEN), 5, 7, 9, 11, 15, { from: dev })
+
+        lvl1 = await staking.makeLevelInfo(ONE_TOKEN, 5, { from: dev });
+        lvl2 = await staking.makeLevelInfo(ONE_TOKEN.mul(THREE), 7, { from: dev });
+        lvl3 = await staking.makeLevelInfo(ONE_TOKEN.mul(FIVE), 9, { from: dev });
+        lvl4 = await staking.makeLevelInfo(ONE_TOKEN.mul(SEVEN), 11, { from: dev });
+        lvl5 = await staking.makeLevelInfo(ONE_TOKEN.mul(TEN), 15, { from: dev });
+
+        await staking.setLevelInf([lvl1, lvl2, lvl3, lvl4, lvl5], { from: dev })
         this.snapshotA = await snapshot();
     })
 

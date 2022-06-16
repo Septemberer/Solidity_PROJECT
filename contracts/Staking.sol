@@ -64,6 +64,18 @@ contract Staking is Ownable, ReentrancyGuard {
         return reward;
     }
 
+    /**
+     * @notice Возвращает структуру уровня
+     * @param threshold: Ввод грани уровня
+     * @param percent: Ввод процента уровня
+     */
+    function makeLevelInfo (uint256 threshold, uint256 percent) public view onlyOwner returns (LevelInfo memory) {
+        return LevelInfo (
+            threshold,
+            percent
+        );
+    }
+
     function setLevelInf (LevelInfo[] memory lvls) external onlyOwner {
         lvlInfo[1] = lvls[0];
         lvlInfo[2] = lvls[1];
