@@ -10,9 +10,6 @@ pragma solidity ^0.8.4;
 contract Staking is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20Metadata;
 
-    // Сколько wei в одном токене
-    uint256 public DEC;
-
     // Жетон награды
     IERC20Metadata public rewardToken;
 
@@ -23,13 +20,18 @@ contract Staking is Ownable, ReentrancyGuard {
     mapping(address => UserInfo) public userInfo;
 
     // Информация об уровнях стейкинга (lvl -> [threshold, percent])
-    mapping(uint256 => uint256[2]) public lvlInfo;
+    mapping(uint256 => LevelInfo) public lvlInfo;
 
     struct UserInfo {
         uint256 amount; // How many staked tokens the user has provided
         uint256 level; // Уровень пользователя
         uint256 rewardDebt; // Сколько выйгрыша выводил пользователь
         uint256 timeStart; // Время с которого считается текущий заработок
+    }
+
+    struct LevelInfo {
+        uint256 threshold;
+        uint256 percent;
     }
 
     event Deposit(address indexed user, uint256 amount);
@@ -50,29 +52,24 @@ contract Staking is Ownable, ReentrancyGuard {
 
         uint256 decimalsRewardToken = uint256(_rewardToken.decimals());
         require(decimalsRewardToken < 30, "Must be inferior to 30");
-
-        DEC = uint256(10 ** decimalsRewardToken);
-
     }
 
-    function setLevelInf (
-        uint256 _thresholdOf_1_Lvl,
-        uint256 _thresholdOf_2_Lvl,
-        uint256 _thresholdOf_3_Lvl,
-        uint256 _thresholdOf_4_Lvl,
-        uint256 _thresholdOf_5_Lvl,
-        uint256 _percentFor_1_Lvl,
-        uint256 _percentFor_2_Lvl,
-        uint256 _percentFor_3_Lvl,
-        uint256 _percentFor_4_Lvl,
-        uint256 _percentFor_5_Lvl
-    ) external onlyOwner {
-        lvlInfo[0] = [0, 0];
-        lvlInfo[1] = [_thresholdOf_1_Lvl, _percentFor_1_Lvl];
-        lvlInfo[2] = [_thresholdOf_2_Lvl, _percentFor_2_Lvl];
-        lvlInfo[3] = [_thresholdOf_3_Lvl, _percentFor_3_Lvl];
-        lvlInfo[4] = [_thresholdOf_4_Lvl, _percentFor_4_Lvl];
-        lvlInfo[5] = [_thresholdOf_5_Lvl, _percentFor_5_Lvl];
+    /**
+     * @notice Высчитывает заработок юзера к данному моменту
+     * @param _user: User про которого надо узнать информацию
+     */
+    function getRewardDebt(address _user) public view returns (uint256){
+        UserInfo memory user = userInfo[_user];
+        uint256 reward = (user.amount * lvlInfo[user.level].percent) * (block.timestamp - user.timeStart) / (100 * 365 * 24 * 60 * 60);
+        return reward;
+    }
+
+    function setLevelInf (LevelInfo[] memory lvls) external onlyOwner {
+        lvlInfo[1] = lvls[0];
+        lvlInfo[2] = lvls[1];
+        lvlInfo[3] = lvls[2];
+        lvlInfo[4] = lvls[3];
+        lvlInfo[5] = lvls[4];
     }
 
     /**
@@ -95,7 +92,7 @@ contract Staking is Ownable, ReentrancyGuard {
      * @notice Информация об уровне пользователя
      * @param _user: Адрес интересующего пользователя
      */
-    function getLevel(address _user) external view returns(uint256){
+    function getLevelInfo(address _user) external view returns(uint256){
         return userInfo[_user].level;
     }
 
@@ -104,67 +101,56 @@ contract Staking is Ownable, ReentrancyGuard {
      * @param _amount: amount to withdraw (in rewardToken)
      */
     function deposit(uint256 _amount) external nonReentrant {
-        UserInfo storage user = userInfo[_msgSender()];
+        address _adr = _msgSender();
+        UserInfo storage user = userInfo[_adr];
 
         if (user.amount > 0) {
-            uint256 pending = getRewardDebt(user);
+            uint256 pending = getRewardDebt(_adr);
             if (pending > 0) {
-                rewardToken.safeTransfer(address(_msgSender()), pending);
                 user.rewardDebt += pending;
                 user.timeStart = block.timestamp;
+                rewardToken.safeTransfer(
+                    address(_adr),
+                    pending
+                );
             }
         } 
-
 
         if (_amount > 0) {
             user.amount = user.amount + _amount;
 
-            setLevel(user);
+            user.level = getLevel(user.amount);
 
             stakedToken.safeTransferFrom(
-                address(_msgSender()),
+                address(_adr),
                 address(this),
                 _amount
             );
         }
 
-        emit Deposit(_msgSender(), _amount);
+        emit Deposit(_adr, _amount);
     }
 
     /**
-     * @notice Показывает процент для заработка юзера по его уровню
-     * @param user: User про которого надо узнать информацию
+     * @notice Показывает уровень юзера по его вложенным средствам
+     * @param amount: сколько средств
      */
+    function getLevel(uint256 amount) view internal returns(uint256) {
 
-    /**
-     * @notice Задает уровень юзера по его вложенным средствам
-     * @param user: User про которого надо узнать информацию
-     */
-    function setLevel(UserInfo storage user) internal {
-
-        if (user.amount >= lvlInfo[5][0]) {
-            user.level = 5;
-        } else if (user.amount >= lvlInfo[4][0]) {
-            user.level = 4;
-        } else if (user.amount >= lvlInfo[3][0]) {
-            user.level = 3;
-        } else if (user.amount >= lvlInfo[2][0]) {
-            user.level = 2;
-        } else if (user.amount >= lvlInfo[1][0]) {
-            user.level = 1;
+        if (amount >= lvlInfo[5].threshold) {
+            return 5;
+        } else if (amount >= lvlInfo[4].threshold) {
+            return 4;
+        } else if (amount >= lvlInfo[3].threshold) {
+            return 3;
+        } else if (amount >= lvlInfo[2].threshold) {
+            return 2;
+        } else if (amount >= lvlInfo[1].threshold) {
+            return 1;
         } else {
-            user.level = 0;
+            return 0;
         }
 
-    }
-
-    /**
-     * @notice Высчитывает заработок юзера к данному моменту, обнуляет таймер
-     * @param user: User про которого надо узнать информацию
-     */
-    function getRewardDebt(UserInfo memory user) public view returns (uint256){
-        uint256 reward = (user.amount * lvlInfo[user.level][1]) * (block.timestamp - user.timeStart) / (100 * 365 * 24 * 60 * 60);
-        return reward;
     }
 
 
@@ -173,23 +159,25 @@ contract Staking is Ownable, ReentrancyGuard {
      * @param _amount: amount to withdraw (in stakedToken)
      */
     function withdraw(uint256 _amount) external nonReentrant {
-        UserInfo storage user = userInfo[_msgSender()];
+        address _adr = _msgSender();
+        UserInfo storage user = userInfo[_adr];
         require(user.amount >= _amount, "Amount to withdraw too high");
 
-        uint256 pending = getRewardDebt(user);
+        uint256 pending = getRewardDebt(_adr);
 
         if (_amount > 0) {
             user.amount = user.amount - _amount;
-            stakedToken.safeTransfer(address(_msgSender()), _amount);
+            user.level = getLevel(user.amount);
+            stakedToken.safeTransfer(address(_adr), _amount);
         }
 
         if (pending > 0) {
-            rewardToken.safeTransfer(address(_msgSender()), pending);
+            rewardToken.safeTransfer(address(_adr), pending);
             user.rewardDebt += pending;
             user.timeStart = block.timestamp;
         }
 
-        emit Withdraw(_msgSender(), _amount);
+        emit Withdraw(_adr, _amount);
     }
 
     /**
@@ -197,14 +185,16 @@ contract Staking is Ownable, ReentrancyGuard {
      * @dev Needs to be for emergency.
      */
     function emergencyWithdraw() external nonReentrant {
-        UserInfo storage user = userInfo[_msgSender()];
+        address _adr = _msgSender();
+        UserInfo storage user = userInfo[_adr];
         uint256 amountToTransfer = user.amount;
         user.amount = 0;
+        user.level = getLevel(user.amount);
 
         if (amountToTransfer > 0) {
-            stakedToken.safeTransfer(address(_msgSender()), amountToTransfer);
+            stakedToken.safeTransfer(address(_adr), amountToTransfer);
         }
 
-        emit EmergencyWithdraw(_msgSender(), amountToTransfer);
+        emit EmergencyWithdraw(_adr, amountToTransfer);
     }
 }
