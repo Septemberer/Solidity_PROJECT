@@ -13,8 +13,8 @@ const STAKE = artifacts.require('Staking');
 const MockERC20 = artifacts.require('MockERC20');
 
 const ZERO = new BN(0);
-const ONE = BigNumber.from(1)
-const TWO = BigNumber.from(2)
+const ONE = BigNumber.from(1);
+const TWO = BigNumber.from(2);
 const THREE = new BN(3);
 const FOUR = new BN(4);
 const FIVE = new BN(5);
@@ -85,21 +85,24 @@ describe("Staking", function () {
 
     const tx1 = await staking.connect(alice).deposit(ONE_TOKEN.mul(1));
 
+    await tx1.wait()
     console.log(tx1);
+    
+    expect(await staking.getLevelInfo(alice.address)).to.be.eq(ONE);
 
-    expect(await staking.getLevelInfo(alice)).to.be.eq(ONE);
-    console.log("Тут был")
-    const tx2 = await staking.connect(alice).deposit(ONE_TOKEN.mul(TWO));
+
+    const tx2 = await staking.connect(alice).deposit(ONE_TOKEN.mul(2));
 
     console.log(tx2);
 
-    expect(await staking.getLevelInfo(alice)).to.be.bignumber.eq(TWO);
+    expect(await staking.getLevelInfo(alice.address)).to.be.eq(TWO);
 
-    await time.increase(5000);
+    await time.increase(50000);
 
     const tx3 = await staking.connect(alice).withdraw('0');
+
     console.log(tx3);
 
-    expect(await token2.balanceOf(alice)).to.be.bignumber.eq(tx3);
+    expect(await token2.balanceOf(alice.address)).to.be.bignumber.eq(tx3);
   })
 }) 
