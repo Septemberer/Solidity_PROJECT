@@ -13,8 +13,8 @@ const STAKE = artifacts.require('Staking');
 const MockERC20 = artifacts.require('MockERC20');
 
 const ZERO = new BN(0);
-const ONE = new BN(1);
-const TWO = new BN(2);
+const ONE = BigNumber.from(1)
+const TWO = BigNumber.from(2)
 const THREE = new BN(3);
 const FOUR = new BN(4);
 const FIVE = new BN(5);
@@ -81,14 +81,14 @@ describe("Staking", function () {
 
   it("Deposit/Withdraw", async function() {
 
-    await token1.connect(alice).approve(staking.address, TEN_TOKEN.mul(TEN));
+    await token1.connect(alice).approve(staking.address, ONE_TOKEN.mul(100));
 
-    const tx1 = await staking.connect(alice).deposit(ONE_TOKEN);
+    const tx1 = await staking.connect(alice).deposit(ONE_TOKEN.mul(1));
 
     console.log(tx1);
 
-    expect(await staking.getLevelInfo(alice)).to.be.bignumber.eq(ONE);
-
+    expect(await staking.getLevelInfo(alice)).to.be.eq(ONE);
+    console.log("Тут был")
     const tx2 = await staking.connect(alice).deposit(ONE_TOKEN.mul(TWO));
 
     console.log(tx2);
