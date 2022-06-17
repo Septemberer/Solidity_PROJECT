@@ -112,13 +112,12 @@ contract Staking is Ownable, ReentrancyGuard {
      * @notice Deposit staked tokens and collect reward tokens (if any)
      * @param _amount: amount to withdraw (in rewardToken)
      */
-    function deposit(uint256 _amount) external nonReentrant returns(uint256) {
+    function deposit(uint256 _amount) external nonReentrant{
         address _adr = _msgSender();
         UserInfo storage user = userInfo[_adr];
-        uint256 pending;
 
         if (user.amount > 0) {
-            pending = getRewardDebt(_adr);
+            uint256 pending = getRewardDebt(_adr);
             if (pending > 0) {
                 user.rewardDebt += pending;
                 user.timeStart = block.timestamp;
@@ -142,7 +141,6 @@ contract Staking is Ownable, ReentrancyGuard {
         }
 
         emit Deposit(_adr, _amount);
-        return pending;
     }
 
     /**
@@ -171,7 +169,7 @@ contract Staking is Ownable, ReentrancyGuard {
      * @notice Withdraw staked tokens and collect reward tokens
      * @param _amount: amount to withdraw (in stakedToken)
      */
-    function withdraw(uint256 _amount) external nonReentrant returns (uint256){
+    function withdraw(uint256 _amount) external nonReentrant {
         address _adr = _msgSender();
         UserInfo storage user = userInfo[_adr];
         require(user.amount >= _amount, "Amount to withdraw too high");
@@ -191,7 +189,6 @@ contract Staking is Ownable, ReentrancyGuard {
         }
 
         emit Withdraw(_adr, _amount);
-        return pending;
     }
 
     /**
