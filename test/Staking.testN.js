@@ -1,34 +1,18 @@
-const { BN, expectEvent, expectRevert, time, snapshot } = require('@openzeppelin/test-helpers');
-const { ZERO_ADDRESS } = require('@openzeppelin/test-helpers/src/constants');
+const { time } = require('@openzeppelin/test-helpers');
 const { expect } = require("chai")
 const { ethers } = require("hardhat")
 const { BigNumber} = require("ethers");
+
 require('dotenv').config();
 
 const {
 } = process.env;
 
-const STAKE = artifacts.require('Staking');
-
-const MockERC20 = artifacts.require('MockERC20');
-
 const ZERO = BigNumber.from(0);
 const ONE = BigNumber.from(1);
 const TWO = BigNumber.from(2);
-const THREE = BigNumber.from(3);
-const FOUR = BigNumber.from(4);
-const FIVE = new BN(5);
-const SIX = new BN(6);
-const SEVEN = new BN(7);
-const EIGHT = new BN(8);
-const NINE = new BN(9);
-const TEN = BigNumber.from(10);
-const TWENTY = new BN(20);
-const HUND = new BN(100);
-const DECIMALS = new BN(18);
-const DECIMALS_ = BigNumber.from(19);
 const ONE_TOKEN = BigNumber.from(10).pow(18);
-const TEN_TOKEN = TEN.pow(DECIMALS_);
+
 
 describe("Staking", function () {
     let staking;
