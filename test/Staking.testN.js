@@ -12,21 +12,21 @@ const STAKE = artifacts.require('Staking');
 
 const MockERC20 = artifacts.require('MockERC20');
 
-const ZERO = new BN(0);
+const ZERO = BigNumber.from(0);
 const ONE = BigNumber.from(1);
 const TWO = BigNumber.from(2);
-const THREE = new BN(3);
-const FOUR = new BN(4);
+const THREE = BigNumber.from(3);
+const FOUR = BigNumber.from(4);
 const FIVE = new BN(5);
 const SIX = new BN(6);
 const SEVEN = new BN(7);
 const EIGHT = new BN(8);
 const NINE = new BN(9);
-const TEN = new BN(10);
+const TEN = BigNumber.from(10);
 const TWENTY = new BN(20);
 const HUND = new BN(100);
 const DECIMALS = new BN(18);
-const DECIMALS_ = new BN(19);
+const DECIMALS_ = BigNumber.from(19);
 const ONE_TOKEN = BigNumber.from(10).pow(18);
 const TEN_TOKEN = TEN.pow(DECIMALS_);
 
@@ -80,29 +80,41 @@ describe("Staking", function () {
   })
 
   it("Deposit/Withdraw", async function() {
+    let user_sum = ZERO;
 
     await token1.connect(alice).approve(staking.address, ONE_TOKEN.mul(100));
 
     const tx1 = await staking.connect(alice).deposit(ONE_TOKEN.mul(1));
+    let time1 = await web3.eth.getBlock(tx1.blockNumber);
 
-    await tx1.wait()
-    console.log(tx1);
-    
+    // Проверка что уровень Алисы - 1й
     expect(await staking.getLevelInfo(alice.address)).to.be.eq(ONE);
 
-
     const tx2 = await staking.connect(alice).deposit(ONE_TOKEN.mul(2));
+    let time2 = await web3.eth.getBlock(tx2.blockNumber);
 
-    console.log(tx2);
+    let _amount = ONE_TOKEN.mul(1);
+    let _level_perc = await staking.getPercent(await staking.getLevel(_amount));
 
+    user_sum = user_sum.add(_amount.mul(_level_perc).mul(time2.timestamp - time1.timestamp).div(BigNumber.from(100 * 365 * 24 * 60 * 60)));
+
+    // Проверка, что сумма полученная Алисой совпадает с той которую она должна получить по правилам стейкинга
+    expect(await token2.balanceOf(alice.address)).to.be.eq(user_sum);
+
+    // Проверка что уровень Алисы - 2й
     expect(await staking.getLevelInfo(alice.address)).to.be.eq(TWO);
 
     await time.increase(50000);
 
     const tx3 = await staking.connect(alice).withdraw('0');
+    let time3 = await web3.eth.getBlock(tx3.blockNumber);
 
-    console.log(tx3);
+    _amount = ONE_TOKEN.mul(3);
+    _level_perc = await staking.getPercent(await staking.getLevel(_amount));
 
-    expect(await token2.balanceOf(alice.address)).to.be.bignumber.eq(tx3);
+    user_sum = user_sum.add(_amount.mul(_level_perc).mul(time3.timestamp - time2.timestamp).div(BigNumber.from(100 * 365 * 24 * 60 * 60)));
+
+    // Проверка, что сумма полученная Алисой совпадает с той которую она должна получить по правилам стейкинга
+    expect(await token2.balanceOf(alice.address)).to.be.eq(user_sum);
   })
 }) 

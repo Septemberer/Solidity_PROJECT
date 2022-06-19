@@ -76,6 +76,41 @@ contract Staking is Ownable, ReentrancyGuard {
         );
     }
 
+
+    /**
+     * @notice Показывает процент юзера по его вложенным средствам
+     * @param lvl: уровень
+     */
+    function getPercent(uint256 lvl) view public returns(uint256) {
+        return lvlInfo[lvl].percent;
+    }
+
+
+    /**
+     * @notice Показывает уровень юзера по его вложенным средствам
+     * @param amount: сколько средств
+     */
+    function getLevel(uint256 amount) view public returns(uint256) {
+
+        if (amount >= lvlInfo[5].threshold) {
+            return 5;
+        } else if (amount >= lvlInfo[4].threshold) {
+            return 4;
+        } else if (amount >= lvlInfo[3].threshold) {
+            return 3;
+        } else if (amount >= lvlInfo[2].threshold) {
+            return 2;
+        } else if (amount >= lvlInfo[1].threshold) {
+            return 1;
+        } else {
+            return 0;
+        }
+    }
+
+    /**
+     * @notice Устанавливает комплект уровней
+     * @param lvls: массив структур уровня
+     */
     function setLevelInf (LevelInfo[] memory lvls) external onlyOwner {
         lvlInfo[1] = lvls[0];
         lvlInfo[2] = lvls[1];
@@ -106,6 +141,14 @@ contract Staking is Ownable, ReentrancyGuard {
      */
     function getLevelInfo(address _user) external view returns(uint256){
         return userInfo[_user].level;
+    }
+
+    /**
+     * @notice Информация о балансе пользователя
+     * @param _user: Адрес интересующего пользователя
+     */
+    function getAmount(address _user) external view returns(uint256){
+        return userInfo[_user].amount;
     }
 
     /**
@@ -141,27 +184,6 @@ contract Staking is Ownable, ReentrancyGuard {
         }
 
         emit Deposit(_adr, _amount);
-    }
-
-    /**
-     * @notice Показывает уровень юзера по его вложенным средствам
-     * @param amount: сколько средств
-     */
-    function getLevel(uint256 amount) view internal returns(uint256) {
-
-        if (amount >= lvlInfo[5].threshold) {
-            return 5;
-        } else if (amount >= lvlInfo[4].threshold) {
-            return 4;
-        } else if (amount >= lvlInfo[3].threshold) {
-            return 3;
-        } else if (amount >= lvlInfo[2].threshold) {
-            return 2;
-        } else if (amount >= lvlInfo[1].threshold) {
-            return 1;
-        } else {
-            return 0;
-        }
     }
 
 
