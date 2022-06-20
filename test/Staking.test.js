@@ -1,130 +1,104 @@
-// const { BN, expectEvent, expectRevert, time, snapshot } = require('@openzeppelin/test-helpers');
-// const { ZERO_ADDRESS } = require('@openzeppelin/test-helpers/src/constants');
-// const { expect } = require('chai');
+const { time } = require('@openzeppelin/test-helpers');
+const { expect } = require("chai")
+const { ethers } = require("hardhat")
+const { BigNumber} = require("ethers");
 
-// require('dotenv').config();
+require('dotenv').config();
 
-// const {
-// } = process.env;
+const {
+} = process.env;
 
-// const STAKE = artifacts.require('Staking');
-
-// const MockERC20 = artifacts.require('MockERC20');
-
-// const ZERO = new BN(0);
-// const ONE = new BN(1);
-// const TWO = new BN(2);
-// const THREE = new BN(3);
-// const FOUR = new BN(4);
-// const FIVE = new BN(5);
-// const SIX = new BN(6);
-// const SEVEN = new BN(7);
-// const EIGHT = new BN(8);
-// const NINE = new BN(9);
-// const TEN = new BN(10);
-// const TWENTY = new BN(20);
-// const HUND = new BN(100);
-// const DECIMALS = new BN(18);
-// const DECIMALS_ = new BN(19);
-// const ONE_TOKEN = TEN.pow(DECIMALS);
-// const TEN_TOKEN = TEN.pow(DECIMALS_);
+const ZERO = BigNumber.from(0);
+const ONE = BigNumber.from(1);
+const TWO = BigNumber.from(2);
+const ONE_TOKEN = BigNumber.from(10).pow(18);
 
 
-// contract('Staking', ([alice, bob, dev, minter]) => {
+describe("Staking", function () {
+    let staking;
 
-//     let staking;
-//     let token1;
-//     let token2;
-//     let lvl1;
-//     let lvl2;
-//     let lvl3;
-//     let lvl4;
-//     let lvl5;
+    let token1;
+    let token2;
 
+    let alice;
+    let bob;
+    let dev;
+    let minter;
 
-//     before(async () => {
-        
-        
-//         token1 = await MockERC20.new('Token', 'TK1', TEN_TOKEN.mul(HUND), { from: minter });
-//         token2 = await MockERC20.new('Token', 'TK2', TEN_TOKEN.mul(HUND), { from: minter });
-//         staking = await STAKE.new(token1.address, token2.address, { from: dev });
+    let lvl1;
+    let lvl2;
+    let lvl3;
+    let lvl4;
+    let lvl5;
 
-//         await token1.transfer(alice, TEN_TOKEN.mul(TEN), { from: minter });
-//         await token1.transfer(bob, TEN_TOKEN.mul(TEN), { from: minter });
-//         await token2.transfer(staking.address, TEN_TOKEN, { from: minter });
+  beforeEach(async function() {
+    [alice, bob, dev, minter] = await ethers.getSigners()
+    const Token = await ethers.getContractFactory("MockERC20", minter)
+    const Staking = await ethers.getContractFactory("Staking", dev)
 
-//         lvl1 = await staking.makeLevelInfo(ONE_TOKEN, 5, { from: dev });
-//         lvl2 = await staking.makeLevelInfo(ONE_TOKEN.mul(THREE), 7, { from: dev });
-//         lvl3 = await staking.makeLevelInfo(ONE_TOKEN.mul(FIVE), 9, { from: dev });
-//         lvl4 = await staking.makeLevelInfo(ONE_TOKEN.mul(SEVEN), 11, { from: dev });
-//         lvl5 = await staking.makeLevelInfo(ONE_TOKEN.mul(TEN), 15, { from: dev });
+    token1 = await Token.deploy('Token', 'TK1', ONE_TOKEN.mul(1000))
+    token2 = await Token.deploy('Token', 'TK2', ONE_TOKEN.mul(1000))
+    await token1.connect(minter).deployed()
+    await token2.connect(minter).deployed()
 
-//         await staking.setLevelInf([lvl1, lvl2, lvl3, lvl4, lvl5], { from: dev })
-//         this.snapshotA = await snapshot();
-//     })
+    staking = await Staking.deploy(token1.address, token2.address)
+    await staking.connect(dev).deployed()
 
-//     beforeEach(async () => {
-//         await this.snapshotA.restore();
-//     })
+    await token2.connect(minter).transfer(staking.address, ONE_TOKEN.mul(10));
 
-//     it('Deposit/Withdraw', async () => {
+    await token1.connect(minter).transfer(alice.address, ONE_TOKEN.mul(100));
 
-//         await token1.approve(staking.address, TEN_TOKEN.mul(TEN), { from: alice });
+    await token1.connect(minter).transfer(bob.address, ONE_TOKEN.mul(100));
+    
+    lvl1 = await staking.connect(dev).makeLevelInfo(ONE_TOKEN.mul(1), 5);
+    lvl2 = await staking.connect(dev).makeLevelInfo(ONE_TOKEN.mul(3), 7);
+    lvl3 = await staking.connect(dev).makeLevelInfo(ONE_TOKEN.mul(5), 9);
+    lvl4 = await staking.connect(dev).makeLevelInfo(ONE_TOKEN.mul(7), 11);
+    lvl5 = await staking.connect(dev).makeLevelInfo(ONE_TOKEN.mul(10), 15);
 
-//         const tx = await staking.deposit(ONE_TOKEN, { from: alice });
+    await staking.connect(dev).setLevelInf([lvl1, lvl2, lvl3, lvl4, lvl5])
+  })
 
-//         console.log(tx);
+  it("Should be deployed", async function() {
+    expect(staking.address).to.be.properAddress
+  })
 
-//         expect(await staking.getLevelInfo(alice)).to.be.bignumber.eq(ONE);
+  it("Deposit/Withdraw", async function() {
+    let user_sum = ZERO;
 
-//         await staking.deposit(ONE_TOKEN.mul(TWO), { from: alice });
-//         console.log(alice_balance);
+    await token1.connect(alice).approve(staking.address, ONE_TOKEN.mul(100));
 
-//         expect(await staking.getLevelInfo(alice)).to.be.bignumber.eq(TWO);
+    const tx1 = await staking.connect(alice).deposit(ONE_TOKEN.mul(1));
+    let time1 = await web3.eth.getBlock(tx1.blockNumber);
 
-//         await time.increase(5000);
+    // Проверка что уровень Алисы - 1й
+    expect(await staking.getLevelInfo(alice.address)).to.be.eq(ONE);
 
-//         await staking.withdraw('0', { from: alice });
-//         console.log(alice_balance);
+    const tx2 = await staking.connect(alice).deposit(ONE_TOKEN.mul(2));
+    let time2 = await web3.eth.getBlock(tx2.blockNumber);
 
-//         expect(await token2.balanceOf(alice)).to.be.bignumber.eq(-alice_balance);
-//     })
+    let _amount = ONE_TOKEN.mul(1);
+    let _level_perc = await staking.getPercent(await staking.getLevel(_amount));
 
-//     it('Complex math', async () => {
+    user_sum = user_sum.add(_amount.mul(_level_perc).mul(time2.timestamp - time1.timestamp).div(BigNumber.from(100 * 365 * 24 * 60 * 60)));
 
-//         await token1.approve(staking.address, ONE_TOKEN.mul(TEN), { from: alice});
-//         await token1.approve(staking.address, ONE_TOKEN.mul(TEN), { from: bob});
+    // Проверка, что сумма полученная Алисой совпадает с той которую она должна получить по правилам стейкинга
+    expect(await token2.balanceOf(alice.address)).to.be.eq(user_sum);
 
-//         await staking.deposit(ONE_TOKEN, { from: alice});
+    // Проверка что уровень Алисы - 2й
+    expect(await staking.getLevelInfo(alice.address)).to.be.eq(TWO);
 
-//         await time.increase(30);
+    await time.increase(50000);
 
-//         await staking.deposit(ONE_TOKEN, { from: alice});
+    const tx3 = await staking.connect(alice).withdraw('0');
+    let time3 = await web3.eth.getBlock(tx3.blockNumber);
 
-//         expect(await staking.getLevelInfo(alice)).to.be.bignumber.eq(ONE);
+    _amount = ONE_TOKEN.mul(3);
+    _level_perc = await staking.getPercent(await staking.getLevel(_amount));
 
-//         await time.increase(40);
-        
-//         await staking.deposit(ONE_TOKEN, { from: bob});
-        
-//         await time.increase(500);
+    user_sum = user_sum.add(_amount.mul(_level_perc).mul(time3.timestamp - time2.timestamp).div(BigNumber.from(100 * 365 * 24 * 60 * 60)));
 
-//         await staking.deposit(ONE_TOKEN, { from: bob});
-
-//         await time.increase(5000);
-
-//         await staking.deposit(ONE_TOKEN, { from: bob});
-
-//         await time.increase(5000);
-
-//         expect(await staking.getLevelInfo(alice)).to.be.bignumber.eq(ONE);
-//         expect(await staking.getLevelInfo(bob)).to.be.bignumber.eq(TWO);
-
-//         await staking.withdraw('0', { from: alice });
-//         await staking.withdraw('0', { from: bob });
-
-//         expect(await token2.balanceOf(alice)).to.be.bignumber.eq(await staking.getRDInfo(alice));
-//         expect(await token2.balanceOf(bob)).to.be.bignumber.eq(await staking.getRDInfo(bob));
-//     })
-
-// })
+    // Проверка, что сумма полученная Алисой совпадает с той которую она должна получить по правилам стейкинга
+    expect(await token2.balanceOf(alice.address)).to.be.eq(user_sum);
+  })
+}) 

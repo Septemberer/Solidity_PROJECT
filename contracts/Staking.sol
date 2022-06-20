@@ -4,10 +4,11 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import "contracts/IStaking.sol";
 
 pragma solidity ^0.8.4;
 
-contract Staking is Ownable, ReentrancyGuard {
+contract Staking is IStaking, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20Metadata;
 
     // Жетон награды
@@ -21,18 +22,6 @@ contract Staking is Ownable, ReentrancyGuard {
 
     // Информация об уровнях стейкинга (lvl -> [threshold, percent])
     mapping(uint256 => LevelInfo) public lvlInfo;
-
-    struct UserInfo {
-        uint256 amount; // How many staked tokens the user has provided
-        uint256 level; // Уровень пользователя
-        uint256 rewardDebt; // Сколько выйгрыша выводил пользователь
-        uint256 timeStart; // Время с которого считается текущий заработок
-    }
-
-    struct LevelInfo {
-        uint256 threshold;
-        uint256 percent;
-    }
 
     event Deposit(address indexed user, uint256 amount);
     event EmergencyWithdraw(address indexed user, uint256 amount);
