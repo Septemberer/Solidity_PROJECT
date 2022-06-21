@@ -47,7 +47,7 @@ contract Staking is IStaking, Ownable, ReentrancyGuard {
      * @notice Высчитывает заработок юзера к данному моменту
      * @param _user: User про которого надо узнать информацию
      */
-    function getRewardDebt(address _user) public view returns (uint256){
+    function getRewardDebt(address _user) public override view returns (uint256){
         UserInfo memory user = userInfo[_user];
         uint256 reward = (user.amount * lvlInfo[user.level].percent) * (block.timestamp - user.timeStart) / (100 * 365 * 24 * 60 * 60);
         return reward;
@@ -58,7 +58,7 @@ contract Staking is IStaking, Ownable, ReentrancyGuard {
      * @param threshold: Ввод грани уровня
      * @param percent: Ввод процента уровня
      */
-    function makeLevelInfo (uint256 threshold, uint256 percent) public view onlyOwner returns (LevelInfo memory) {
+    function makeLevelInfo (uint256 threshold, uint256 percent) public override view onlyOwner returns (LevelInfo memory) {
         return LevelInfo (
             threshold,
             percent
@@ -70,7 +70,7 @@ contract Staking is IStaking, Ownable, ReentrancyGuard {
      * @notice Показывает процент юзера по его вложенным средствам
      * @param lvl: уровень
      */
-    function getPercent(uint256 lvl) view public returns(uint256) {
+    function getPercent(uint256 lvl) public override view returns(uint256) {
         return lvlInfo[lvl].percent;
     }
 
@@ -79,7 +79,7 @@ contract Staking is IStaking, Ownable, ReentrancyGuard {
      * @notice Показывает уровень юзера по его вложенным средствам
      * @param amount: сколько средств
      */
-    function getLevel(uint256 amount) view public returns(uint256) {
+    function getLevel(uint256 amount) public override view returns(uint256) {
 
         if (amount >= lvlInfo[5].threshold) {
             return 5;
@@ -100,7 +100,7 @@ contract Staking is IStaking, Ownable, ReentrancyGuard {
      * @notice Устанавливает комплект уровней
      * @param lvls: массив структур уровня
      */
-    function setLevelInf (LevelInfo[] memory lvls) external onlyOwner {
+    function setLevelInf (LevelInfo[] memory lvls) external override onlyOwner {
         lvlInfo[1] = lvls[0];
         lvlInfo[2] = lvls[1];
         lvlInfo[3] = lvls[2];
@@ -112,7 +112,7 @@ contract Staking is IStaking, Ownable, ReentrancyGuard {
      * @notice Сводная информация по пользователю
      * @param _user: Адрес интересующего пользователя
      */
-    function getInfo(address _user) external view returns(UserInfo memory){
+    function getInfo(address _user) external override view returns(UserInfo memory){
         return userInfo[_user];
     }
 
@@ -120,7 +120,7 @@ contract Staking is IStaking, Ownable, ReentrancyGuard {
      * @notice Информация о полученных токенах
      * @param _user: Адрес интересующего пользователя
      */
-    function getRDInfo(address _user) external view returns(uint256){
+    function getRDInfo(address _user) external override view returns(uint256){
         return userInfo[_user].rewardDebt;
     }
 
@@ -128,7 +128,7 @@ contract Staking is IStaking, Ownable, ReentrancyGuard {
      * @notice Информация об уровне пользователя
      * @param _user: Адрес интересующего пользователя
      */
-    function getLevelInfo(address _user) external view returns(uint256){
+    function getLevelInfo(address _user) external override view returns(uint256){
         return userInfo[_user].level;
     }
 
@@ -136,7 +136,7 @@ contract Staking is IStaking, Ownable, ReentrancyGuard {
      * @notice Информация о балансе пользователя
      * @param _user: Адрес интересующего пользователя
      */
-    function getAmount(address _user) external view returns(uint256){
+    function getAmount(address _user) external override view returns(uint256){
         return userInfo[_user].amount;
     }
 
@@ -144,7 +144,7 @@ contract Staking is IStaking, Ownable, ReentrancyGuard {
      * @notice Deposit staked tokens and collect reward tokens (if any)
      * @param _amount: amount to withdraw (in rewardToken)
      */
-    function deposit(uint256 _amount) external nonReentrant{
+    function deposit(uint256 _amount) external override nonReentrant{
         address _adr = _msgSender();
         UserInfo storage user = userInfo[_adr];
 
@@ -180,7 +180,7 @@ contract Staking is IStaking, Ownable, ReentrancyGuard {
      * @notice Withdraw staked tokens and collect reward tokens
      * @param _amount: amount to withdraw (in stakedToken)
      */
-    function withdraw(uint256 _amount) external nonReentrant {
+    function withdraw(uint256 _amount) external override nonReentrant {
         address _adr = _msgSender();
         UserInfo storage user = userInfo[_adr];
         require(user.amount >= _amount, "Amount to withdraw too high");
@@ -206,7 +206,7 @@ contract Staking is IStaking, Ownable, ReentrancyGuard {
      * @notice Withdraw staked tokens without caring about rewards rewards
      * @dev Needs to be for emergency.
      */
-    function emergencyWithdraw() external nonReentrant {
+    function emergencyWithdraw() external override nonReentrant {
         address _adr = _msgSender();
         UserInfo storage user = userInfo[_adr];
         uint256 amountToTransfer = user.amount;

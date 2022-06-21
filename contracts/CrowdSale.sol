@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-import "@uniswap/v2-periphery/contracts/UniswapV2Router02.sol";
+import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -12,7 +12,7 @@ pragma solidity ^0.8.4;
 contract CrowdSale is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20Metadata;
 
-    UniswapV2Router02 public UV2Router; // Для использования функции добавления ликвидности
+    IUniswapV2Router02 public UV2Router; // Для использования функции добавления ликвидности
 
     IStaking public staking; // Отсюда будем подтягивать информацию об уровне пользователей
 
@@ -40,10 +40,14 @@ contract CrowdSale is Ownable, ReentrancyGuard {
 
     mapping(uint256 => PartPool) pool;
 
+    event Buy(address indexed user, uint256 amount);
+    event Sell(address indexed user, uint256 amount);
+
     /**
      * @notice Create contract
      * @param _paymentToken: Токены использующиеся для накопления инвестиций
      * @param _saleToken: Токены которые мы продаем
+     * @param _staking: Стейкинг привязанный к продажам
      * @param _price: Цена saleToken выраженная в paymentToken
      * @param _timePeriod: Сколько будет длиться период продаж
      * @param _poolSize: Размер пула который будет участвовать а продажах
@@ -52,6 +56,7 @@ contract CrowdSale is Ownable, ReentrancyGuard {
     constructor (
         IERC20Metadata _paymentToken,
         IERC20Metadata _saleToken,
+        IStaking _staking,
         uint256 _price,
         uint256 _timePeriod,
         uint256 _poolSize,
@@ -64,6 +69,7 @@ contract CrowdSale is Ownable, ReentrancyGuard {
         timeEnd = timeStart + _timePeriod;
         percentDEX = _percentDEX;
         _initPool(_poolSize);
+        staking = _staking;
     }
 
     /**
@@ -116,6 +122,7 @@ contract CrowdSale is Ownable, ReentrancyGuard {
             
             payments[_user] += _amountPay;
         }
+        emit Buy(_user, _amountPay);
     }
 
     /**
@@ -124,11 +131,12 @@ contract CrowdSale is Ownable, ReentrancyGuard {
     function getTokens () external nonReentrant {
         require(finalized, "Liquidity has not been added yet");
         address user = _msgSender();
-        uint256 amountPayment = payments[user];
-        if (amountPayment > 0) {
+        uint256 amountSell = payments[user] / price;
+        if (amountSell > 0) {
             payments[user] = 0;
-            saleToken.transfer(user, amountPayment * price);
+            saleToken.transfer(user, amountSell);
         }
+        emit Sell(user, amountSell);
     }
 
     /**
@@ -137,8 +145,9 @@ contract CrowdSale is Ownable, ReentrancyGuard {
     function widthdrawAll () external nonReentrant onlyOwner {
         require(finalized, "Liquidity has not been added yet");
         address owner = _msgSender();
-        saleToken.transfer(owner, unSoldPoolInfo());
-
+        uint256 amountSell = unSoldPoolInfo();
+        saleToken.transfer(owner, amountSell);
+        emit Sell(owner, amountSell);
     }
 
     /**
@@ -147,12 +156,12 @@ contract CrowdSale is Ownable, ReentrancyGuard {
     function finalize () external nonReentrant onlyOwner {
         require(block.timestamp > timeEnd, "Crowd Sale not ended");
 
-        uint256 amountPT = percentDEX * soldPoolInfo();
+        uint256 amountPT = percentDEX * soldPoolInfo() / 100;
 
         UV2Router.addLiquidity(
-            saleToken, 
-            paymentToken, 
-            amountPT * price, 
+            address(saleToken), 
+            address(paymentToken), 
+            amountPT / price, 
             amountPT, 
             1, 
             1, 
