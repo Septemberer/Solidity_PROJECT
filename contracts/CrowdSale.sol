@@ -12,50 +12,63 @@ pragma solidity ^0.8.4;
 contract CrowdSale is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20Metadata;
 
-    UniswapV2Router02 public UV2Router;
+    UniswapV2Router02 public UV2Router; // Для использования функции добавления ликвидности
 
-    IStaking public staking;
+    IStaking public staking; // Отсюда будем подтягивать информацию об уровне пользователей
 
-    IERC20Metadata public paymentToken;
+    uint256 public price; // Цена saleToken выраженная в paymentToken
 
-    uint256 public price; // payment/sale
+    IERC20Metadata public paymentToken; // Токены использующиеся для накопления инвестиций
 
-    IERC20Metadata public saleToken;
+    IERC20Metadata public saleToken; // Токены которые мы продаем
 
-    uint256 public timeStart;
+    uint256 public percentDEX; // Процент пула, который будет использоваться для обеспечения ликвидности
 
-    uint256 public timeEnd;
+    uint256 public timeStart; // Время открытия функций для инвестирования
+
+    uint256 public timeEnd; // Время закрытия функций инвестирования
+                            // только после этого времени возможно добавление ликвидности
+
+    bool public finalized;  // Была ли добавлена ликвидность
 
     struct PartPool {
         uint256 maxSizePart;
         uint256 currentSizePart;
     }
 
-    struct Payment {
-        address user;
-        uint256 amountPayment;
-        uint256 timestamp;
-    }
-
-    Payment[] payments;
+    mapping(address => uint256) payments;
 
     mapping(uint256 => PartPool) pool;
 
+    /**
+     * @notice Create contract
+     * @param _paymentToken: Токены использующиеся для накопления инвестиций
+     * @param _saleToken: Токены которые мы продаем
+     * @param _price: Цена saleToken выраженная в paymentToken
+     * @param _timePeriod: Сколько будет длиться период продаж
+     * @param _poolSize: Размер пула который будет участвовать а продажах
+     * @param _percentDEX: Процент продающегося пула, который будет использоваться для ликвидности
+     */
     constructor (
         IERC20Metadata _paymentToken,
         IERC20Metadata _saleToken,
         uint256 _price,
         uint256 _timePeriod,
-        uint256 _poolSize
+        uint256 _poolSize,
+        uint256 _percentDEX
     ) {
         paymentToken = _paymentToken;
         saleToken = _saleToken;
         price = _price;
         timeStart = block.timestamp;
         timeEnd = timeStart + _timePeriod;
-        initPool(_poolSize);
+        percentDEX = _percentDEX;
+        _initPool(_poolSize);
     }
 
+    /**
+     * @notice Возвращает проданную часть пула
+     */
     function soldPoolInfo () public view returns (uint256) {
         return (
             (pool[1].maxSizePart - pool[1].currentSizePart) +
@@ -66,7 +79,94 @@ contract CrowdSale is Ownable, ReentrancyGuard {
         );
     }
 
-    function initPool (uint256 poolSize) internal {
+    /**
+     * @notice Возвращает непроданную часть пула
+     */
+    function unSoldPoolInfo () public view returns (uint256) {
+        return (
+            pool[1].currentSizePart +
+            pool[2].currentSizePart +
+            pool[3].currentSizePart +
+            pool[4].currentSizePart +
+            pool[5].currentSizePart
+        );
+    }
+
+    /**
+     * @notice Для покупки токенов юзерами в течение промежутка продажи
+     * @param _amountPay: сколько готов инвестировать юзер
+     */
+    function buy (uint256 _amountPay) external nonReentrant {
+
+        require(block.timestamp < timeEnd, "Crowd Sale ended");
+
+        address _user = _msgSender();
+        uint256 _lvl = staking.getLevelInfo(_user);
+        
+        if (_amountPay > 0) {
+            uint256 _amountSale = price * _amountPay;
+            require(pool[_lvl].currentSizePart >= _amountSale, "Limit exceeded");
+            pool[_lvl].currentSizePart -= _amountSale;
+
+            paymentToken.safeTransferFrom(
+                _user,
+                address(this),
+                _amountPay
+            );
+            
+            payments[_user] += _amountPay;
+        }
+    }
+
+    /**
+     * @notice Начисляет юзеру приобретенные токены, может использоваться только после добавления ликвидности
+     */
+    function getTokens () external nonReentrant {
+        require(finalized, "Liquidity has not been added yet");
+        address user = _msgSender();
+        uint256 amountPayment = payments[user];
+        if (amountPayment > 0) {
+            payments[user] = 0;
+            saleToken.transfer(user, amountPayment * price);
+        }
+    }
+
+    /**
+     * @notice Начисляет владельцу непроданные токены, может использоваться только после добавления ликвидности
+     */
+    function widthdrawAll () external nonReentrant onlyOwner {
+        require(finalized, "Liquidity has not been added yet");
+        address owner = _msgSender();
+        saleToken.transfer(owner, unSoldPoolInfo());
+
+    }
+
+    /**
+     * @notice Добавляет ликвидность, используется после закрытия торгов, открывает возможность забрать купленные токены
+     */
+    function finalize () external nonReentrant onlyOwner {
+        require(block.timestamp > timeEnd, "Crowd Sale not ended");
+
+        uint256 amountPT = percentDEX * soldPoolInfo();
+
+        UV2Router.addLiquidity(
+            saleToken, 
+            paymentToken, 
+            amountPT * price, 
+            amountPT, 
+            1, 
+            1, 
+            address(this), 
+            block.timestamp + 60 * 60 // Запас час на проведение транзакции
+        );
+        finalized = true;
+    }
+
+    /**
+     * @notice Инициализатор пула, выделяет слоты в пуле для юзеров различных уровней
+     * @param poolSize: Размер пула, который будет использоваться для продажи
+     */
+    function _initPool (uint256 poolSize) internal {
         pool[1] = PartPool (
             poolSize * 5 / 100,
             poolSize * 5 / 100
@@ -87,56 +187,5 @@ contract CrowdSale is Ownable, ReentrancyGuard {
             poolSize * 40 / 100,
             poolSize * 40 / 100
         );
-    }
-
-    function buy (uint256 _amountPay) external nonReentrant {
-
-        require(block.timestamp < timeEnd, "Crowd Sale ended");
-
-        address _user = _msgSender();
-        uint256 _lvl = staking.getLevelInfo(_user);
-        
-        if (_amountPay > 0) {
-            uint256 _amountSale = price * _amountPay;
-            require(pool[_lvl].currentSizePart >= _amountSale, "Limit exceeded");
-            pool[_lvl].currentSizePart -= _amountSale;
-
-            paymentToken.safeTransferFrom(
-                _user,
-                address(this),
-                _amountPay
-            );
-            
-            payments.push(Payment(
-                _user,
-                _amountPay,
-                block.timestamp
-            ));
-        }
-    }
-
-    function finalize () external nonReentrant onlyOwner {
-        require(block.timestamp > timeEnd, "Crowd Sale not ended");
-
-        uint256 amountPT = soldPoolInfo();
-        UV2Router.addLiquidity(
-            saleToken, 
-            paymentToken, 
-            amountPT * price, 
-            amountPT, 
-            1, 
-            1, 
-            address(this), 
-            block.timestamp + 60 * 60 // Запас час на проведение транзакции
-        );
-
-        for (uint i; i < payments.length; i++){
-            if (payments[i].timestamp < timeEnd) {
-                saleToken.transfer(
-                    payments[i].user,
-                    payments[i].amountPayment
-                );
-            }
-        }
     }
 }
