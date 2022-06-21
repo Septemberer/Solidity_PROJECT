@@ -19,12 +19,12 @@ For deploying contract on localhost:
 ```shell
 npx hardhat run --network localhost scripts/deploy.js
 ```
+
 For deploying contract on goerli:
 
 ```shell
 npx hardhat run scripts/deploy.js --network goerli
 ```
-
 
 For verify contract on goerli:
 
