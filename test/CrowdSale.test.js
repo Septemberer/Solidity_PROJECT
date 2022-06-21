@@ -1,7 +1,7 @@
 const { time } = require('@openzeppelin/test-helpers');
 const { expect } = require("chai")
 const { ethers } = require("hardhat")
-const { BigNumber} = require("ethers");
+const { BigNumber } = require("ethers");
 
 require('dotenv').config();
 
@@ -15,23 +15,23 @@ const ONE_TOKEN = BigNumber.from(10).pow(18);
 
 
 describe("CrowdSale", function () {
-    let staking;
+  let staking;
 
-    let token1;
-    let token2;
+  let token1;
+  let token2;
 
-    let alice;
-    let bob;
-    let dev;
-    let minter;
+  let alice;
+  let bob;
+  let dev;
+  let minter;
 
-    let lvl1;
-    let lvl2;
-    let lvl3;
-    let lvl4;
-    let lvl5;
+  let lvl1;
+  let lvl2;
+  let lvl3;
+  let lvl4;
+  let lvl5;
 
-  beforeEach(async function() {
+  beforeEach(async function () {
     [alice, dev2, dev, minter] = await ethers.getSigners()
     const Token = await ethers.getContractFactory("MockERC20", minter)
     const Staking = await ethers.getContractFactory("Staking", dev)
@@ -51,13 +51,13 @@ describe("CrowdSale", function () {
     await staking.connect(dev).deployed()
 
     crowdsale = await CrowdSale.deploy(
-        tokenPayment.address, 
-        tokenSale.address,
-        staking,
-        10,
-        60 * 60 * 24 * 30,
-        ONE_TOKEN.mul(100),
-        30
+      tokenPayment.address,
+      tokenSale.address,
+      staking,
+      10,
+      60 * 60 * 24 * 30,
+      ONE_TOKEN.mul(100),
+      30
     )
     await crowdsale.connect(dev2).deployed()
 
@@ -67,7 +67,7 @@ describe("CrowdSale", function () {
     await token1.connect(minter).transfer(alice.address, ONE_TOKEN.mul(100))
     await tokenSale.connect(minter).transfer(crowdsale.address, ONE_TOKEN.mul(130))
     await tokenPayment.connect(minter).transfer(alice.address, ONE_TOKEN.mul(2000))
-    
+
     // Заполняем уровни для стейкинга
 
     lvl1 = await staking.connect(dev).makeLevelInfo(ONE_TOKEN.mul(1), 5)
@@ -88,11 +88,11 @@ describe("CrowdSale", function () {
 
   })
 
-  it("Should be deployed", async function() {
+  it("Should be deployed", async function () {
     expect(crowdsale.address).to.be.properAddress
   })
 
-  it("Buy", async function() {
+  it("Buy", async function () {
     crowdsale.connect(alice).buy(ONE_TOKEN.mul(50))
     expect(await tokenPayment.balanceOf(crowdsale.address)).to.be.eq(ONE_TOKEN.mul(50))
     await time.increase(60 * 60 * 24 * 31); // Спустя 31 день

@@ -1,7 +1,7 @@
 const { time } = require('@openzeppelin/test-helpers');
 const { expect } = require("chai")
 const { ethers } = require("hardhat")
-const { BigNumber} = require("ethers");
+const { BigNumber } = require("ethers");
 
 require('dotenv').config();
 
@@ -15,23 +15,23 @@ const ONE_TOKEN = BigNumber.from(10).pow(18);
 
 
 describe("Staking", function () {
-    let staking;
+  let staking;
 
-    let token1;
-    let token2;
+  let token1;
+  let token2;
 
-    let alice;
-    let bob;
-    let dev;
-    let minter;
+  let alice;
+  let bob;
+  let dev;
+  let minter;
 
-    let lvl1;
-    let lvl2;
-    let lvl3;
-    let lvl4;
-    let lvl5;
+  let lvl1;
+  let lvl2;
+  let lvl3;
+  let lvl4;
+  let lvl5;
 
-  beforeEach(async function() {
+  beforeEach(async function () {
     [alice, bob, dev, minter] = await ethers.getSigners()
     const Token = await ethers.getContractFactory("MockERC20", minter)
     const Staking = await ethers.getContractFactory("Staking", dev)
@@ -49,7 +49,7 @@ describe("Staking", function () {
     await token1.connect(minter).transfer(alice.address, ONE_TOKEN.mul(100));
 
     await token1.connect(minter).transfer(bob.address, ONE_TOKEN.mul(100));
-    
+
     lvl1 = await staking.connect(dev).makeLevelInfo(ONE_TOKEN.mul(1), 5);
     lvl2 = await staking.connect(dev).makeLevelInfo(ONE_TOKEN.mul(3), 7);
     lvl3 = await staking.connect(dev).makeLevelInfo(ONE_TOKEN.mul(5), 9);
@@ -59,11 +59,11 @@ describe("Staking", function () {
     await staking.connect(dev).setLevelInf([lvl1, lvl2, lvl3, lvl4, lvl5])
   })
 
-  it("Should be deployed", async function() {
+  it("Should be deployed", async function () {
     expect(staking.address).to.be.properAddress
   })
 
-  it("Deposit/Withdraw", async function() {
+  it("Deposit/Withdraw", async function () {
     let user_sum = ZERO;
 
     await token1.connect(alice).approve(staking.address, ONE_TOKEN.mul(100));

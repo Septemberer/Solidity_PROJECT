@@ -1,21 +1,21 @@
 // SPDX-License-Identifier: MIT
 
+pragma solidity ^0.8.4;
+
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "contracts/IStaking.sol";
 
-pragma solidity ^0.8.4;
-
 contract Staking is IStaking, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20Metadata;
 
     // Жетон награды
-    IERC20Metadata public rewardToken;
+    IERC20Metadata public immutable rewardToken;
 
     // Ставка на токен
-    IERC20Metadata public stakedToken;
+    IERC20Metadata public immutable stakedToken;
 
     // Информация о каждом пользователе, который ставит токены (stakedToken)
     mapping(address => UserInfo) public userInfo;
@@ -32,10 +32,7 @@ contract Staking is IStaking, Ownable, ReentrancyGuard {
      * @param _stakedToken: staked token address
      * @param _rewardToken: reward token address
      */
-    constructor(
-        IERC20Metadata _stakedToken,
-        IERC20Metadata _rewardToken
-    ) {
+    constructor(IERC20Metadata _stakedToken, IERC20Metadata _rewardToken) {
         stakedToken = _stakedToken;
         rewardToken = _rewardToken;
 
@@ -47,9 +44,15 @@ contract Staking is IStaking, Ownable, ReentrancyGuard {
      * @notice Высчитывает заработок юзера к данному моменту
      * @param _user: User про которого надо узнать информацию
      */
-    function getRewardDebt(address _user) public override view returns (uint256){
+    function getRewardDebt(address _user)
+        public
+        view
+        override
+        returns (uint256)
+    {
         UserInfo memory user = userInfo[_user];
-        uint256 reward = (user.amount * lvlInfo[user.level].percent) * (block.timestamp - user.timeStart) / (100 * 365 * 24 * 60 * 60);
+        uint256 reward = ((user.amount * lvlInfo[user.level].percent) *
+            (block.timestamp - user.timeStart)) / (100 * 365 * 24 * 60 * 60);
         return reward;
     }
 
@@ -58,29 +61,28 @@ contract Staking is IStaking, Ownable, ReentrancyGuard {
      * @param threshold: Ввод грани уровня
      * @param percent: Ввод процента уровня
      */
-    function makeLevelInfo (uint256 threshold, uint256 percent) public override view onlyOwner returns (LevelInfo memory) {
-        return LevelInfo (
-            threshold,
-            percent
-        );
+    function makeLevelInfo(uint256 threshold, uint256 percent)
+        public
+        view
+        onlyOwner
+        returns (LevelInfo memory)
+    {
+        return LevelInfo(threshold, percent);
     }
-
 
     /**
      * @notice Показывает процент юзера по его вложенным средствам
      * @param lvl: уровень
      */
-    function getPercent(uint256 lvl) public override view returns(uint256) {
+    function getPercent(uint256 lvl) public view override returns (uint256) {
         return lvlInfo[lvl].percent;
     }
-
 
     /**
      * @notice Показывает уровень юзера по его вложенным средствам
      * @param amount: сколько средств
      */
-    function getLevel(uint256 amount) public override view returns(uint256) {
-
+    function getLevel(uint256 amount) public view override returns (uint256) {
         if (amount >= lvlInfo[5].threshold) {
             return 5;
         } else if (amount >= lvlInfo[4].threshold) {
@@ -100,19 +102,17 @@ contract Staking is IStaking, Ownable, ReentrancyGuard {
      * @notice Устанавливает комплект уровней
      * @param lvls: массив структур уровня
      */
-    function setLevelInf (LevelInfo[] memory lvls) external override onlyOwner {
-        lvlInfo[1] = lvls[0];
-        lvlInfo[2] = lvls[1];
-        lvlInfo[3] = lvls[2];
-        lvlInfo[4] = lvls[3];
-        lvlInfo[5] = lvls[4];
+    function setLevelInf(LevelInfo[] memory lvls) external onlyOwner {
+        for (uint8 i; i < 5; i++) {
+            lvlInfo[i + 1] = lvls[i];
+        }
     }
 
     /**
      * @notice Сводная информация по пользователю
      * @param _user: Адрес интересующего пользователя
      */
-    function getInfo(address _user) external override view returns(UserInfo memory){
+    function getInfo(address _user) external view returns (UserInfo memory) {
         return userInfo[_user];
     }
 
@@ -120,7 +120,7 @@ contract Staking is IStaking, Ownable, ReentrancyGuard {
      * @notice Информация о полученных токенах
      * @param _user: Адрес интересующего пользователя
      */
-    function getRDInfo(address _user) external override view returns(uint256){
+    function getRDInfo(address _user) external view override returns (uint256) {
         return userInfo[_user].rewardDebt;
     }
 
@@ -128,7 +128,12 @@ contract Staking is IStaking, Ownable, ReentrancyGuard {
      * @notice Информация об уровне пользователя
      * @param _user: Адрес интересующего пользователя
      */
-    function getLevelInfo(address _user) external override view returns(uint256){
+    function getLevelInfo(address _user)
+        external
+        view
+        override
+        returns (uint256)
+    {
         return userInfo[_user].level;
     }
 
@@ -136,7 +141,7 @@ contract Staking is IStaking, Ownable, ReentrancyGuard {
      * @notice Информация о балансе пользователя
      * @param _user: Адрес интересующего пользователя
      */
-    function getAmount(address _user) external override view returns(uint256){
+    function getAmount(address _user) external view override returns (uint256) {
         return userInfo[_user].amount;
     }
 
@@ -144,7 +149,7 @@ contract Staking is IStaking, Ownable, ReentrancyGuard {
      * @notice Deposit staked tokens and collect reward tokens (if any)
      * @param _amount: amount to withdraw (in rewardToken)
      */
-    function deposit(uint256 _amount) external override nonReentrant{
+    function deposit(uint256 _amount) external nonReentrant {
         address _adr = _msgSender();
         UserInfo storage user = userInfo[_adr];
 
@@ -153,10 +158,7 @@ contract Staking is IStaking, Ownable, ReentrancyGuard {
             if (pending > 0) {
                 user.rewardDebt += pending;
                 user.timeStart = block.timestamp;
-                rewardToken.safeTransfer(
-                    _adr,
-                    pending
-                );
+                rewardToken.safeTransfer(_adr, pending);
             }
         } else {
             user.timeStart = block.timestamp;
@@ -165,22 +167,17 @@ contract Staking is IStaking, Ownable, ReentrancyGuard {
         if (_amount > 0) {
             user.amount = user.amount + _amount;
             user.level = getLevel(user.amount);
-            stakedToken.safeTransferFrom(
-                _adr,
-                address(this),
-                _amount
-            );
+            stakedToken.safeTransferFrom(_adr, address(this), _amount);
         }
 
         emit Deposit(_adr, _amount);
     }
 
-
     /**
      * @notice Withdraw staked tokens and collect reward tokens
      * @param _amount: amount to withdraw (in stakedToken)
      */
-    function withdraw(uint256 _amount) external override nonReentrant {
+    function withdraw(uint256 _amount) external nonReentrant {
         address _adr = _msgSender();
         UserInfo storage user = userInfo[_adr];
         require(user.amount >= _amount, "Amount to withdraw too high");
@@ -206,7 +203,7 @@ contract Staking is IStaking, Ownable, ReentrancyGuard {
      * @notice Withdraw staked tokens without caring about rewards rewards
      * @dev Needs to be for emergency.
      */
-    function emergencyWithdraw() external override nonReentrant {
+    function emergencyWithdraw() external nonReentrant {
         address _adr = _msgSender();
         UserInfo storage user = userInfo[_adr];
         uint256 amountToTransfer = user.amount;
