@@ -2,6 +2,7 @@ const { time } = require('@openzeppelin/test-helpers');
 const { expect } = require("chai")
 const { ethers } = require("hardhat")
 const { BigNumber } = require("ethers");
+const { factory } = require('typescript');
 
 require('dotenv').config();
 
@@ -21,7 +22,8 @@ describe("CrowdSale", function () {
   let token2;
 
   let alice;
-  let bob;
+  let factory;
+  let weth;
   let dev;
   let minter;
 
@@ -32,10 +34,11 @@ describe("CrowdSale", function () {
   let lvl5;
 
   beforeEach(async function () {
-    [alice, dev2, dev, minter] = await ethers.getSigners()
+    [alice, dev2, dev, minter, factory, weth] = await ethers.getSigners()
     const Token = await ethers.getContractFactory("MockERC20", minter)
     const Staking = await ethers.getContractFactory("Staking", dev)
     const CrowdSale = await ethers.getContractFactory("CrowdSale", dev2)
+    const UniswapV2Router02 = await ethers.getContractFactory("MockUniswapV2Router02", dev2)
 
     token1 = await Token.deploy('Token', 'TK1', ONE_TOKEN.mul(1000))
     token2 = await Token.deploy('Token', 'TK2', ONE_TOKEN.mul(1000))
@@ -50,10 +53,14 @@ describe("CrowdSale", function () {
     staking = await Staking.deploy(token1.address, token2.address)
     await staking.connect(dev).deployed()
 
+    uniswapv2router02 = await UniswapV2Router02.deploy(factory.address, weth.address)
+    await uniswapv2router02.connect(dev).deployed()
+
     crowdsale = await CrowdSale.deploy(
       tokenPayment.address,
       tokenSale.address,
-      staking,
+      staking.address,
+      uniswapv2router02.address,
       10,
       60 * 60 * 24 * 30,
       ONE_TOKEN.mul(100),
@@ -93,7 +100,8 @@ describe("CrowdSale", function () {
   })
 
   it("Buy", async function () {
-    crowdsale.connect(alice).buy(ONE_TOKEN.mul(50))
+    await tokenPayment.connect(alice).approve(crowdsale.address, ONE_TOKEN.mul(500))
+    await crowdsale.connect(alice).buy(ONE_TOKEN.mul(50))
     expect(await tokenPayment.balanceOf(crowdsale.address)).to.be.eq(ONE_TOKEN.mul(50))
     await time.increase(60 * 60 * 24 * 31); // Спустя 31 день
     await crowdsale.connect(dev2).finalize(); // После закрытия сейла добавляем ликвидность

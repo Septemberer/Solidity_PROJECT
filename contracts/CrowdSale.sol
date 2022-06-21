@@ -57,6 +57,7 @@ contract CrowdSale is Ownable, ReentrancyGuard {
         IERC20Metadata _paymentToken,
         IERC20Metadata _saleToken,
         IStaking _staking,
+        IUniswapV2Router02 _UV2Router,
         uint256 _price,
         uint256 _timePeriod,
         uint256 _poolSize,
@@ -70,6 +71,7 @@ contract CrowdSale is Ownable, ReentrancyGuard {
         percentDEX = _percentDEX;
         _initPool(_poolSize);
         staking = _staking;
+        UV2Router = _UV2Router;
     }
 
     /**
@@ -105,7 +107,7 @@ contract CrowdSale is Ownable, ReentrancyGuard {
         uint256 _lvl = staking.getLevelInfo(_user);
 
         if (_amountPay > 0) {
-            uint256 _amountSale = price * _amountPay;
+            uint256 _amountSale = _amountPay / price;
             require(
                 pool[_lvl].currentSizePart >= _amountSale,
                 "Limit exceeded"
@@ -117,6 +119,14 @@ contract CrowdSale is Ownable, ReentrancyGuard {
             payments[_user] += _amountPay;
         }
         emit Buy(_user, _amountPay);
+    }
+
+    function whatTime () public view returns (uint256) {
+        return block.timestamp;
+    }
+
+    function inside () public view returns (bool) {
+        return timeStart < whatTime() && whatTime() < timeEnd;
     }
 
     /**
