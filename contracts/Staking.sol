@@ -44,12 +44,7 @@ contract Staking is IStaking, Ownable, ReentrancyGuard {
      * @notice Высчитывает заработок юзера к данному моменту
      * @param _user: User про которого надо узнать информацию
      */
-    function getRewardDebt(address _user)
-        public
-        view
-        override
-        returns (uint256)
-    {
+    function getRewardDebt(address _user) public view returns (uint256) {
         UserInfo memory user = userInfo[_user];
         uint256 reward = ((user.amount * lvlInfo[user.level].percent) *
             (block.timestamp - user.timeStart)) / (100 * 365 * 24 * 60 * 60);
@@ -74,7 +69,7 @@ contract Staking is IStaking, Ownable, ReentrancyGuard {
      * @notice Показывает процент юзера по его вложенным средствам
      * @param lvl: уровень
      */
-    function getPercent(uint256 lvl) public view override returns (uint256) {
+    function getPercent(uint256 lvl) public view returns (uint256) {
         return lvlInfo[lvl].percent;
     }
 
@@ -82,7 +77,7 @@ contract Staking is IStaking, Ownable, ReentrancyGuard {
      * @notice Показывает уровень юзера по его вложенным средствам
      * @param amount: сколько средств
      */
-    function getLevel(uint256 amount) public view override returns (uint256) {
+    function getLevel(uint256 amount) public view returns (uint256) {
         if (amount >= lvlInfo[5].threshold) {
             return 5;
         } else if (amount >= lvlInfo[4].threshold) {
@@ -120,7 +115,7 @@ contract Staking is IStaking, Ownable, ReentrancyGuard {
      * @notice Информация о полученных токенах
      * @param _user: Адрес интересующего пользователя
      */
-    function getRDInfo(address _user) external view override returns (uint256) {
+    function getRDInfo(address _user) external view returns (uint256) {
         return userInfo[_user].rewardDebt;
     }
 
@@ -141,7 +136,7 @@ contract Staking is IStaking, Ownable, ReentrancyGuard {
      * @notice Информация о балансе пользователя
      * @param _user: Адрес интересующего пользователя
      */
-    function getAmount(address _user) external view override returns (uint256) {
+    function getAmount(address _user) external view returns (uint256) {
         return userInfo[_user].amount;
     }
 
