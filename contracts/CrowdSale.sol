@@ -16,7 +16,7 @@ contract CrowdSale is Ownable, ReentrancyGuard {
 
     IStaking public staking; // Отсюда будем подтягивать информацию об уровне пользователей
 
-    uint256 public price; // Цена saleToken выраженная в paymentToken
+    uint256 public price; // Цена saleToken выраженная в paymentToken 10^10
 
     IERC20Metadata public paymentToken; // Токены использующиеся для накопления инвестиций
 
@@ -65,7 +65,9 @@ contract CrowdSale is Ownable, ReentrancyGuard {
     ) {
         paymentToken = _paymentToken;
         saleToken = _saleToken;
-        price = _price;
+        uint256 decimalsSaleToken = uint256(_saleToken.decimals());
+        uint256 decimalsPaymentToken = uint256(_paymentToken.decimals());
+        price = _price * (10**(decimalsSaleToken - decimalsPaymentToken));
         timeStart = block.timestamp;
         timeEnd = timeStart + _timePeriod;
         percentDEX = _percentDEX;
@@ -102,30 +104,25 @@ contract CrowdSale is Ownable, ReentrancyGuard {
      */
     function buy(uint256 _amountPay) external nonReentrant {
         require(block.timestamp < timeEnd, "Crowd Sale ended");
+        require(_amountPay > 0, "You can't buy zero");
 
         address _user = _msgSender();
         uint256 _lvl = staking.getLevelInfo(_user);
+        uint256 _amountSale = _getSellAmount(_amountPay);
 
-        if (_amountPay > 0) {
-            uint256 _amountSale = _amountPay / price;
-            require(
-                pool[_lvl].currentSizePart >= _amountSale,
-                "Limit exceeded"
-            );
-            pool[_lvl].currentSizePart -= _amountSale;
+        require(pool[_lvl].currentSizePart >= _amountSale, "Limit exceeded");
 
-            paymentToken.safeTransferFrom(_user, address(this), _amountPay);
-
-            payments[_user] += _amountPay;
-        }
+        pool[_lvl].currentSizePart -= _amountSale;
+        payments[_user] += _amountPay;
+        paymentToken.safeTransferFrom(_user, address(this), _amountPay);
         emit Buy(_user, _amountPay);
     }
 
-    function whatTime () public view returns (uint256) {
+    function whatTime() public view returns (uint256) {
         return block.timestamp;
     }
 
-    function inside () public view returns (bool) {
+    function inside() public view returns (bool) {
         return timeStart < whatTime() && whatTime() < timeEnd;
     }
 
@@ -135,23 +132,33 @@ contract CrowdSale is Ownable, ReentrancyGuard {
     function getTokens() external nonReentrant {
         require(finalized, "Liquidity has not been added yet");
         address user = _msgSender();
-        uint256 amountSell = payments[user] / price;
-        if (amountSell > 0) {
-            payments[user] = 0;
-            saleToken.transfer(user, amountSell);
-        }
+        uint256 amountSell = _getSellAmount(payments[user]);
+        require(amountSell > 0, "You have nothing to take off");
+        payments[user] = 0;
+        saleToken.transfer(user, amountSell);
         emit Sell(user, amountSell);
     }
 
     /**
-     * @notice Начисляет владельцу непроданные токены, может использоваться только после добавления ликвидности
+     * @notice Начисляет владельцу инвестированные пользователями токены, может использоваться только после добавления ликвидности
      */
-    function widthdrawAll() external nonReentrant onlyOwner {
+    function widthdrawSaleTokens() external nonReentrant onlyOwner {
         require(finalized, "Liquidity has not been added yet");
         address owner = _msgSender();
         uint256 amountSell = unSoldPoolInfo();
         saleToken.transfer(owner, amountSell);
         emit Sell(owner, amountSell);
+    }
+
+    /**
+     * @notice Начисляет владельцу непроданные токены, может использоваться только после добавления ликвидности
+     */
+    function widthdrawPaymentTokens() external nonReentrant onlyOwner {
+        require(finalized, "Liquidity has not been added yet");
+        address owner = _msgSender();
+        uint256 amountPayment = paymentToken.balanceOf(address(this));
+        paymentToken.transfer(owner, amountPayment);
+        emit Sell(owner, amountPayment);
     }
 
     /**
@@ -185,5 +192,17 @@ contract CrowdSale is Ownable, ReentrancyGuard {
         pool[3] = PartPool((poolSize * 15) / 100, (poolSize * 15) / 100);
         pool[4] = PartPool((poolSize * 30) / 100, (poolSize * 30) / 100);
         pool[5] = PartPool((poolSize * 40) / 100, (poolSize * 40) / 100);
+    }
+
+    function _getSellAmount(uint256 _paymentAmount)
+        internal
+        view
+        returns (uint256)
+    {
+        uint256 decimalsSaleToken = uint256(saleToken.decimals());
+        uint256 decimalsPaymentToken = uint256(paymentToken.decimals());
+        uint256 _price = price *
+            (10**(decimalsSaleToken - decimalsPaymentToken));
+        return _paymentAmount / _price;
     }
 }
