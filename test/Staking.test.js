@@ -82,7 +82,7 @@ describe("Staking", function () {
 
     user_sum = user_sum.add(_amount.mul(_level_perc).mul(time2.timestamp - time1.timestamp).div(BigNumber.from(100 * 365 * 24 * 60 * 60)));
 
-    // Checking that the amount received by Alice coincides with the one she should receive according to the stacking rules
+    // Checking that the amount received by Alice coincides with the one she should receive according to the staking rules
     expect(await token2.balanceOf(alice.address)).to.be.eq(user_sum);
 
     // Checking that Alice's level is 2nd
@@ -98,7 +98,7 @@ describe("Staking", function () {
 
     user_sum = user_sum.add(_amount.mul(_level_perc).mul(time3.timestamp - time2.timestamp).div(BigNumber.from(100 * 365 * 24 * 60 * 60)));
 
-    // Checking that the amount received by Alice coincides with the one she should receive according to the stacking rules
+    // Checking that the amount received by Alice coincides with the one she should receive according to the staking rules
     expect(await token2.balanceOf(alice.address)).to.be.eq(user_sum);
   })
 }) 

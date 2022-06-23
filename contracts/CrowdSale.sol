@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
 
+pragma solidity ^0.8.4;
+
 import "./resources/pancake-swap/interfaces/IPancakeRouter02.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "contracts/IStaking.sol";
-
-pragma solidity ^0.8.4;
 
 contract CrowdSale is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20Metadata;
@@ -16,7 +16,7 @@ contract CrowdSale is Ownable, ReentrancyGuard {
 
     IStaking public staking; // From here we will pull up information about the user level
 
-    uint256 public price; // saleToken price expressed in paymentToken
+    uint256 public price; // saleToken price expressed in wei
 
     IERC20Metadata public paymentToken; // Tokens used to accumulate investments
 
@@ -30,6 +30,8 @@ contract CrowdSale is Ownable, ReentrancyGuard {
     // only after this time is it possible to add liquidity
 
     bool public finalized; // Has liquidity been added
+
+    bool public cancelled; // Pool cancelled
 
     struct PartPool {
         uint256 maxSizePart;
@@ -70,9 +72,8 @@ contract CrowdSale is Ownable, ReentrancyGuard {
     ) {
         paymentToken = _paymentToken;
         saleToken = _saleToken;
-        uint256 decimalsSaleToken = uint256(_saleToken.decimals());
         uint256 decimalsPaymentToken = uint256(_paymentToken.decimals());
-        price = _price * (10**(decimalsSaleToken - decimalsPaymentToken));
+        price = _price * (10**decimalsPaymentToken);
         timeStart = block.timestamp;
         timeEnd = timeStart + _timePeriod;
         percentDEX = _percentDEX;
@@ -152,6 +153,8 @@ contract CrowdSale is Ownable, ReentrancyGuard {
         onlyOwner
         wasFinalized
     {
+        require(!cancelled, "Cancelled");
+        cancelled = true;
         address owner = _msgSender();
         uint256 amountSell = unSoldPoolInfo();
         saleToken.transfer(owner, amountSell);
@@ -178,7 +181,8 @@ contract CrowdSale is Ownable, ReentrancyGuard {
      */
     function finalize() external nonReentrant onlyOwner {
         require(block.timestamp > timeEnd, "Crowd Sale not ended");
-
+        require(!finalized, "Already finalized");
+        finalized = true;
         uint256 amountPT = (percentDEX * soldPoolInfo()) / 100;
         uint256 amountST = _getSellAmount(amountPT);
         saleToken.approve(address(UV2Router), amountST);
@@ -191,9 +195,8 @@ contract CrowdSale is Ownable, ReentrancyGuard {
             0,
             0,
             address(this),
-            block.timestamp + 60 * 60 // Reserve an hour for conducting a transaction
+            block.timestamp // Reserve an hour for conducting a transaction
         );
-        finalized = true;
     }
 
     /**
@@ -213,10 +216,8 @@ contract CrowdSale is Ownable, ReentrancyGuard {
         view
         returns (uint256)
     {
-        uint256 decimalsSaleToken = uint256(saleToken.decimals());
-        uint256 decimalsPaymentToken = uint256(paymentToken.decimals());
-        uint256 _price = price *
-            (10**(decimalsSaleToken - decimalsPaymentToken));
-        return _paymentAmount / _price;
+        uint256 decimalsSaleToken = 10**uint256(saleToken.decimals());
+        uint256 _sellAmount = (_paymentAmount * decimalsSaleToken) / price;
+        return _sellAmount;
     }
 }
