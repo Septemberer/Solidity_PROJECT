@@ -57,18 +57,5 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
   },
   solidity: {
     version:  "0.8.4",
-    settings: {
-      optimizer: {
-        enabled: true,
-        runs: 2000,
-        details: {
-          yul: true,
-          yulDetails: {
-            stackAllocation: true,
-            optimizerSteps: "dhfoDgvulfnTUtnIf"
-          }
-        }
-      }
-    },
   },
 };

@@ -7,14 +7,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Septemberer/Solidity_PROJECT.git"
+    "url": "git+https://github.com/Septemberer/Launchpad.git"
   },
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/Septemberer/Solidity_PROJECT/issues"
+    "url": "https://github.com/Septemberer/Launchpad/issues"
   },
-  "homepage": "https://github.com/Septemberer/Solidity_PROJECT#readme",
+  "homepage": "https://github.com/Septemberer/Launchpad#readme",
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.6",
     "@nomiclabs/hardhat-etherscan": "^3.1.0",

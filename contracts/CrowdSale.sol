@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
+import "./resources/pancake-swap/interfaces/IPancakeRouter02.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -12,7 +12,7 @@ pragma solidity ^0.8.4;
 contract CrowdSale is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20Metadata;
 
-    IUniswapV2Router02 public UV2Router; // Для использования функции добавления ликвидности
+    IPancakeRouter02 public UV2Router; // Для использования функции добавления ликвидности
 
     IStaking public staking; // Отсюда будем подтягивать информацию об уровне пользователей
 
@@ -62,7 +62,7 @@ contract CrowdSale is Ownable, ReentrancyGuard {
         IERC20Metadata _paymentToken,
         IERC20Metadata _saleToken,
         IStaking _staking,
-        IUniswapV2Router02 _UV2Router,
+        IPancakeRouter02 _UV2Router,
         uint256 _price,
         uint256 _timePeriod,
         uint256 _poolSize,

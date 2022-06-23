@@ -2,7 +2,6 @@ const { time } = require('@openzeppelin/test-helpers');
 const { expect } = require("chai")
 const { ethers } = require("hardhat")
 const { BigNumber } = require("ethers");
-const { factory } = require('typescript');
 
 require('dotenv').config();
 
@@ -17,14 +16,19 @@ const ONE_TOKEN = BigNumber.from(10).pow(18);
 
 describe("CrowdSale", function () {
   let staking;
+  let crowdsale;
+  let factory;
+  let weth;
+  let router;
 
   let token1;
   let token2;
+  let tokenPayment;
+  let tokenSale;
 
   let alice;
-  let factory;
-  let weth;
   let dev;
+  let dev2;
   let minter;
 
   let lvl1;
@@ -34,11 +38,13 @@ describe("CrowdSale", function () {
   let lvl5;
 
   beforeEach(async function () {
-    [alice, dev2, dev, minter, factory, weth] = await ethers.getSigners()
+    [alice, dev2, dev, minter] = await ethers.getSigners()
     const Token = await ethers.getContractFactory("MockERC20", minter)
     const Staking = await ethers.getContractFactory("Staking", dev)
     const CrowdSale = await ethers.getContractFactory("CrowdSale", dev2)
-    const UniswapV2Router02 = await ethers.getContractFactory("MockUniswapV2Router02", dev2)
+    const WETH = await ethers.getContractFactory("WETH", dev2)
+    const UniswapV2Factory = await ethers.getContractFactory("PancakeFactory", dev2)
+    const PancakeRouter = await ethers.getContractFactory("PancakeRouter", dev2)
 
     token1 = await Token.deploy('Token', 'TK1', ONE_TOKEN.mul(1000))
     token2 = await Token.deploy('Token', 'TK2', ONE_TOKEN.mul(1000))
@@ -53,21 +59,28 @@ describe("CrowdSale", function () {
     staking = await Staking.deploy(token1.address, token2.address)
     await staking.connect(dev).deployed()
 
-    uniswapv2router02 = await UniswapV2Router02.deploy(factory.address, weth.address)
-    await uniswapv2router02.connect(dev).deployed()
+    weth = await WETH.deploy()
+    await weth.connect(dev2).deployed()
 
+    factory = await UniswapV2Factory.deploy(dev2.address)
+    await factory.connect(dev2).deployed()
+ 
+    router = await PancakeRouter.deploy(factory.address, weth.address)
+    await router.connect(dev2).deployed()
+
+    console.log("router here")
     crowdsale = await CrowdSale.deploy(
       tokenPayment.address,
       tokenSale.address,
       staking.address,
-      uniswapv2router02.address,
+      router.address,
       10,
       60 * 60 * 24 * 30,
       ONE_TOKEN.mul(100),
       30
     )
     await crowdsale.connect(dev2).deployed()
-
+    console.log("CS here")
     // Пополняем кошельки
 
     await token2.connect(minter).transfer(staking.address, ONE_TOKEN.mul(10))
