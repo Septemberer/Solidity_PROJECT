@@ -36,14 +36,14 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
 /**
  * @type import('hardhat/config').HardhatUserConfig
  */
- module.exports = {
+module.exports = {
   networks: {
     goerli: {
       url: `https://eth-goerli.alchemyapi.io/v2/${ALCHEMY_API_KEY}`,
       accounts: [`${GOERLI_PRIVATE_KEY}`],
       //accounts: {
-          //mnemonic: MNEMONIC,
-      gas: 2100000,
+      //mnemonic: MNEMONIC,
+      gas: 21000000,
       gasPrice: 8000000000,
       saveDeployments: true,
     }
@@ -56,6 +56,12 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
     }
   },
   solidity: {
-    version:  "0.8.4",
+    version: "0.8.4",
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 2000,
+      },
+    },
   },
 };

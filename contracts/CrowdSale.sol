@@ -146,7 +146,7 @@ contract CrowdSale is Ownable, ReentrancyGuard {
     /**
      * @notice Начисляет владельцу инвестированные пользователями токены, может использоваться только после добавления ликвидности
      */
-    function widthdrawSaleTokens()
+    function widthdrawSellTokens()
         external
         nonReentrant
         onlyOwner
@@ -180,14 +180,16 @@ contract CrowdSale is Ownable, ReentrancyGuard {
         require(block.timestamp > timeEnd, "Crowd Sale not ended");
 
         uint256 amountPT = (percentDEX * soldPoolInfo()) / 100;
-
+        uint256 amountST = _getSellAmount(amountPT);
+        saleToken.approve(address(UV2Router), amountST);
+        paymentToken.approve(address(UV2Router), amountPT);
         UV2Router.addLiquidity(
             address(saleToken),
             address(paymentToken),
-            amountPT / price,
+            amountST,
             amountPT,
-            1,
-            1,
+            0,
+            0,
             address(this),
             block.timestamp + 60 * 60 // Запас час на проведение транзакции
         );

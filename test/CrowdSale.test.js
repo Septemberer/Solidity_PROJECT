@@ -64,7 +64,7 @@ describe("CrowdSale", function () {
 
     factory = await UniswapV2Factory.deploy(dev2.address)
     await factory.connect(dev2).deployed()
- 
+
     router = await PancakeRouter.deploy(factory.address, weth.address)
     await router.connect(dev2).deployed()
 
@@ -121,7 +121,9 @@ describe("CrowdSale", function () {
     await time.increase(60 * 60 * 24 * 2); // Спустя 2 дня пользователь вспоминает, что можно уже забрать награду
     await crowdsale.connect(alice).getTokens()
     expect(await tokenSale.balanceOf(alice.address)).to.be.eq(ONE_TOKEN.mul(5)) // А мы точно 5 токенов получили?
-    await crowdsale.connect(dev2).withdrawAll()
+    await crowdsale.connect(dev2).widthdrawSellTokens()
     expect(await tokenSale.balanceOf(dev2.address)).to.be.eq(ONE_TOKEN.mul(95)) // А остальные 95 не проданы и венулись владельцу?
+    await crowdsale.connect(dev2).widthdrawPaymentTokens()
+    expect(await tokenPayment.balanceOf(dev2.address)).to.be.eq(ONE_TOKEN.mul(50)) // А инвестированные средства удалось забрать?
   })
 }) 
