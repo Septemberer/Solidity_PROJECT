@@ -2,6 +2,7 @@ const { time } = require('@openzeppelin/test-helpers');
 const { expect } = require("chai")
 const { ethers } = require("hardhat")
 const { BigNumber } = require("ethers");
+const { divide } = require('lodash');
 
 require('dotenv').config();
 
@@ -68,7 +69,6 @@ describe("CrowdSale", function () {
     router = await PancakeRouter.deploy(factory.address, weth.address)
     await router.connect(dev2).deployed()
 
-    console.log("router here")
     crowdsale = await CrowdSale.deploy(
       tokenPayment.address,
       tokenSale.address,
@@ -80,7 +80,7 @@ describe("CrowdSale", function () {
       30
     )
     await crowdsale.connect(dev2).deployed()
-    console.log("CS here")
+
     // Пополняем кошельки
 
     await token2.connect(minter).transfer(staking.address, ONE_TOKEN.mul(10))
@@ -124,6 +124,6 @@ describe("CrowdSale", function () {
     await crowdsale.connect(dev2).widthdrawSellTokens()
     expect(await tokenSale.balanceOf(dev2.address)).to.be.eq(ONE_TOKEN.mul(95)) // А остальные 95 не проданы и венулись владельцу?
     await crowdsale.connect(dev2).widthdrawPaymentTokens()
-    expect(await tokenPayment.balanceOf(dev2.address)).to.be.eq(ONE_TOKEN.mul(50)) // А инвестированные средства удалось забрать?
+    expect(await tokenPayment.balanceOf(dev2.address)).to.be.eq(ONE_TOKEN.mul(50).mul(97).div(100)) // А инвестированные средства удалось забрать?
   })
 }) 
