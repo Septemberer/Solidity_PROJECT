@@ -11,16 +11,14 @@ import "contracts/IStaking.sol";
 contract Staking is IStaking, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20Metadata;
 
-    // Жетон награды
     IERC20Metadata public immutable rewardToken;
 
-    // Ставка на токен
     IERC20Metadata public immutable stakedToken;
 
-    // Информация о каждом пользователе, который ставит токены (stakedToken)
+    // Information about each user who puts tokens (stakedToken)
     mapping(address => UserInfo) public userInfo;
 
-    // Информация об уровнях стейкинга (lvl -> [threshold, percent])
+    // Information about stacking levels (lvl -> [threshold, percent])
     mapping(uint256 => LevelInfo) public lvlInfo;
 
     event Deposit(address indexed user, uint256 amount);
@@ -41,8 +39,8 @@ contract Staking is IStaking, Ownable, ReentrancyGuard {
     }
 
     /**
-     * @notice Высчитывает заработок юзера к данному моменту
-     * @param _user: User про которого надо узнать информацию
+     * @notice Calculates the user's earnings by this moment
+     * @param _user: User about whom it is necessary to find out information
      */
     function getRewardDebt(address _user) public view returns (uint256) {
         UserInfo memory user = userInfo[_user];
@@ -52,9 +50,9 @@ contract Staking is IStaking, Ownable, ReentrancyGuard {
     }
 
     /**
-     * @notice Возвращает структуру уровня
-     * @param threshold: Ввод грани уровня
-     * @param percent: Ввод процента уровня
+     * @notice Returns the level structure
+     * @param threshold: Entering a level face
+     * @param percent: Entering the level percentage
      */
     function makeLevelInfo(uint256 threshold, uint256 percent)
         public
@@ -66,16 +64,16 @@ contract Staking is IStaking, Ownable, ReentrancyGuard {
     }
 
     /**
-     * @notice Показывает процент юзера по его вложенным средствам
-     * @param lvl: уровень
+     * @notice Shows the percentage of the user on his invested funds
+     * @param lvl: user level
      */
     function getPercent(uint256 lvl) public view returns (uint256) {
         return lvlInfo[lvl].percent;
     }
 
     /**
-     * @notice Показывает уровень юзера по его вложенным средствам
-     * @param amount: сколько средств
+     * @notice Shows the level of the user by his invested funds
+     * @param amount: how many funds
      */
     function getLevel(uint256 amount) public view returns (uint256) {
         if (amount >= lvlInfo[5].threshold) {
@@ -94,8 +92,8 @@ contract Staking is IStaking, Ownable, ReentrancyGuard {
     }
 
     /**
-     * @notice Устанавливает комплект уровней
-     * @param lvls: массив структур уровня
+     * @notice Sets a set of levels
+     * @param lvls: array of level structures
      */
     function setLevelInf(LevelInfo[] memory lvls) external onlyOwner {
         for (uint8 i; i < 5; i++) {
@@ -104,24 +102,24 @@ contract Staking is IStaking, Ownable, ReentrancyGuard {
     }
 
     /**
-     * @notice Сводная информация по пользователю
-     * @param _user: Адрес интересующего пользователя
+     * @notice Summary information on the user
+     * @param _user: The address of the user of interest
      */
     function getInfo(address _user) external view returns (UserInfo memory) {
         return userInfo[_user];
     }
 
     /**
-     * @notice Информация о полученных токенах
-     * @param _user: Адрес интересующего пользователя
+     * @notice Information about the tokens received
+     * @param _user: The address of the user of interest
      */
     function getRDInfo(address _user) external view returns (uint256) {
         return userInfo[_user].rewardDebt;
     }
 
     /**
-     * @notice Информация об уровне пользователя
-     * @param _user: Адрес интересующего пользователя
+     * @notice User Level Information
+     * @param _user: The address of the user of interest
      */
     function getLevelInfo(address _user)
         external
@@ -133,8 +131,8 @@ contract Staking is IStaking, Ownable, ReentrancyGuard {
     }
 
     /**
-     * @notice Информация о балансе пользователя
-     * @param _user: Адрес интересующего пользователя
+     * @notice Information about the user's balance
+     * @param _user: The address of the user of interest
      */
     function getAmount(address _user) external view returns (uint256) {
         return userInfo[_user].amount;

@@ -81,14 +81,14 @@ describe("CrowdSale", function () {
     )
     await crowdsale.connect(dev2).deployed()
 
-    // Пополняем кошельки
+    // Replenishing wallets
 
     await token2.connect(minter).transfer(staking.address, ONE_TOKEN.mul(10))
     await token1.connect(minter).transfer(alice.address, ONE_TOKEN.mul(100))
     await tokenSale.connect(minter).transfer(crowdsale.address, ONE_TOKEN.mul(130))
     await tokenPayment.connect(minter).transfer(alice.address, ONE_TOKEN.mul(2000))
 
-    // Заполняем уровни для стейкинга
+    // Filling in the levels for staking
 
     lvl1 = await staking.connect(dev).makeLevelInfo(ONE_TOKEN.mul(1), 5)
     lvl2 = await staking.connect(dev).makeLevelInfo(ONE_TOKEN.mul(3), 7)
@@ -98,12 +98,12 @@ describe("CrowdSale", function () {
 
     await staking.connect(dev).setLevelInf([lvl1, lvl2, lvl3, lvl4, lvl5])
 
-    // Делаем стейкинг
+    // Doing staking
 
     await token1.connect(alice).approve(staking.address, ONE_TOKEN.mul(100));
     await staking.connect(alice).deposit(ONE_TOKEN.mul(3));
     await staking.connect(alice).withdraw('0')
-    // Проверка что уровень Алисы - 2й
+    // Checking that Alice's level is 2nd
     expect(await staking.getLevelInfo(alice.address)).to.be.eq(TWO)
 
   })
@@ -116,14 +116,17 @@ describe("CrowdSale", function () {
     await tokenPayment.connect(alice).approve(crowdsale.address, ONE_TOKEN.mul(500))
     await crowdsale.connect(alice).buy(ONE_TOKEN.mul(50))
     expect(await tokenPayment.balanceOf(crowdsale.address)).to.be.eq(ONE_TOKEN.mul(50))
-    await time.increase(60 * 60 * 24 * 31); // Спустя 31 день
-    await crowdsale.connect(dev2).finalize(); // После закрытия сейла добавляем ликвидность
-    await time.increase(60 * 60 * 24 * 2); // Спустя 2 дня пользователь вспоминает, что можно уже забрать награду
+    await time.increase(60 * 60 * 24 * 31); // After 31 days
+    await crowdsale.connect(dev2).finalize(); // After closing the sale, we add liquidity
+    await time.increase(60 * 60 * 24 * 2); // After 2 days, the user remembers that it is already possible to pick up the reward
     await crowdsale.connect(alice).getTokens()
-    expect(await tokenSale.balanceOf(alice.address)).to.be.eq(ONE_TOKEN.mul(5)) // А мы точно 5 токенов получили?
+    // Are we sure we got 5 tokens?
+    expect(await tokenSale.balanceOf(alice.address)).to.be.eq(ONE_TOKEN.mul(5)) 
     await crowdsale.connect(dev2).widthdrawSellTokens()
-    expect(await tokenSale.balanceOf(dev2.address)).to.be.eq(ONE_TOKEN.mul(95)) // А остальные 95 не проданы и венулись владельцу?
+    // And the remaining 95 were not sold and returned to the owner?
+    expect(await tokenSale.balanceOf(dev2.address)).to.be.eq(ONE_TOKEN.mul(95)) 
     await crowdsale.connect(dev2).widthdrawPaymentTokens()
-    expect(await tokenPayment.balanceOf(dev2.address)).to.be.eq(ONE_TOKEN.mul(50).mul(97).div(100)) // А инвестированные средства удалось забрать?
+    // Did you manage to collect the invested funds?
+    expect(await tokenPayment.balanceOf(dev2.address)).to.be.eq(ONE_TOKEN.mul(50).mul(97).div(100))
   })
 }) 

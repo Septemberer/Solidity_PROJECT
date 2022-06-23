@@ -12,24 +12,24 @@ pragma solidity ^0.8.4;
 contract CrowdSale is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20Metadata;
 
-    IPancakeRouter02 public UV2Router; // Для использования функции добавления ликвидности
+    IPancakeRouter02 public UV2Router; // To use the add liquidity function
 
-    IStaking public staking; // Отсюда будем подтягивать информацию об уровне пользователей
+    IStaking public staking; // From here we will pull up information about the user level
 
-    uint256 public price; // Цена saleToken выраженная в paymentToken 10^10
+    uint256 public price; // saleToken price expressed in paymentToken
 
-    IERC20Metadata public paymentToken; // Токены использующиеся для накопления инвестиций
+    IERC20Metadata public paymentToken; // Tokens used to accumulate investments
 
-    IERC20Metadata public saleToken; // Токены которые мы продаем
+    IERC20Metadata public saleToken; // Tokens that we sell
 
-    uint256 public percentDEX; // Процент пула, который будет использоваться для обеспечения ликвидности
+    uint256 public percentDEX; // The percentage of the pool that will be used to provide liquidity
 
-    uint256 public timeStart; // Время открытия функций для инвестирования
+    uint256 public timeStart; // Opening time of functions for investment
 
-    uint256 public timeEnd; // Время закрытия функций инвестирования
-    // только после этого времени возможно добавление ликвидности
+    uint256 public timeEnd; // Closing time of investment functions
+    // only after this time is it possible to add liquidity
 
-    bool public finalized; // Была ли добавлена ликвидность
+    bool public finalized; // Has liquidity been added
 
     struct PartPool {
         uint256 maxSizePart;
@@ -50,13 +50,13 @@ contract CrowdSale is Ownable, ReentrancyGuard {
 
     /**
      * @notice Create contract
-     * @param _paymentToken: Токены использующиеся для накопления инвестиций
-     * @param _saleToken: Токены которые мы продаем
-     * @param _staking: Стейкинг привязанный к продажам
-     * @param _price: Цена saleToken выраженная в paymentToken
-     * @param _timePeriod: Сколько будет длиться период продаж
-     * @param _poolSize: Размер пула который будет участвовать а продажах
-     * @param _percentDEX: Процент продающегося пула, который будет использоваться для ликвидности
+     * @param _paymentToken: Tokens used to accumulate investments
+     * @param _saleToken: Tokens that we sell
+     * @param _staking: Stacking linked to sales
+     * @param _price: saleToken price expressed in paymentToken
+     * @param _timePeriod: How long will the sales period last
+     * @param _poolSize: The size of the pool that will participate in sales
+     * @param _percentDEX: Percentage of the pool being sold that will be used for liquidity
      */
     constructor(
         IERC20Metadata _paymentToken,
@@ -82,7 +82,7 @@ contract CrowdSale is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @notice Возвращает проданную часть пула
+     * @notice Returns the sold part of the pool
      */
     function soldPoolInfo() public view returns (uint256) {
         return ((pool[1].maxSizePart - pool[1].currentSizePart) +
@@ -93,7 +93,7 @@ contract CrowdSale is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @notice Возвращает непроданную часть пула
+     * @notice Returns the unsold part of the pool
      */
     function unSoldPoolInfo() public view returns (uint256) {
         return (pool[1].currentSizePart +
@@ -104,8 +104,8 @@ contract CrowdSale is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @notice Для покупки токенов юзерами в течение промежутка продажи
-     * @param _amountPay: сколько готов инвестировать юзер
+     * @notice For the purchase of tokens by users during the period of sale
+     * @param _amountPay: how much is the user willing to invest
      */
     function buy(uint256 _amountPay) external nonReentrant {
         require(block.timestamp < timeEnd, "Crowd Sale ended");
@@ -132,7 +132,7 @@ contract CrowdSale is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @notice Начисляет юзеру приобретенные токены, может использоваться только после добавления ликвидности
+     * @notice Accrues the purchased tokens to the user, can be used only after adding liquidity
      */
     function getTokens() external nonReentrant wasFinalized {
         address user = _msgSender();
@@ -144,7 +144,7 @@ contract CrowdSale is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @notice Начисляет владельцу инвестированные пользователями токены, может использоваться только после добавления ликвидности
+     * @notice Accrues tokens invested by users to the owner, can be used only after adding liquidity
      */
     function widthdrawSellTokens()
         external
@@ -159,7 +159,7 @@ contract CrowdSale is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @notice Начисляет владельцу непроданные токены, может использоваться только после добавления ликвидности
+     * @notice Accrues unsold tokens to the owner, can be used only after adding liquidity
      */
     function widthdrawPaymentTokens()
         external
@@ -174,7 +174,7 @@ contract CrowdSale is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @notice Добавляет ликвидность, используется после закрытия торгов, открывает возможность забрать купленные токены
+     * @notice Adds liquidity, is used after the close of trading, opens the opportunity to pick up the purchased tokens
      */
     function finalize() external nonReentrant onlyOwner {
         require(block.timestamp > timeEnd, "Crowd Sale not ended");
@@ -191,14 +191,14 @@ contract CrowdSale is Ownable, ReentrancyGuard {
             0,
             0,
             address(this),
-            block.timestamp + 60 * 60 // Запас час на проведение транзакции
+            block.timestamp + 60 * 60 // Reserve an hour for conducting a transaction
         );
         finalized = true;
     }
 
     /**
-     * @notice Инициализатор пула, выделяет слоты в пуле для юзеров различных уровней
-     * @param poolSize: Размер пула, который будет использоваться для продажи
+     * @notice Pool initializer, allocates slots in the pool for users of various levels
+     * @param poolSize: The size of the pool to be used for sale
      */
     function _initPool(uint256 poolSize) internal {
         pool[1] = PartPool((poolSize * 5) / 100, (poolSize * 5) / 100);

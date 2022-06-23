@@ -71,7 +71,7 @@ describe("Staking", function () {
     const tx1 = await staking.connect(alice).deposit(ONE_TOKEN.mul(1));
     let time1 = await web3.eth.getBlock(tx1.blockNumber);
 
-    // Проверка что уровень Алисы - 1й
+    // Checking that Alice's level is 1st
     expect(await staking.getLevelInfo(alice.address)).to.be.eq(ONE);
 
     const tx2 = await staking.connect(alice).deposit(ONE_TOKEN.mul(2));
@@ -82,10 +82,10 @@ describe("Staking", function () {
 
     user_sum = user_sum.add(_amount.mul(_level_perc).mul(time2.timestamp - time1.timestamp).div(BigNumber.from(100 * 365 * 24 * 60 * 60)));
 
-    // Проверка, что сумма полученная Алисой совпадает с той которую она должна получить по правилам стейкинга
+    // Checking that the amount received by Alice coincides with the one she should receive according to the stacking rules
     expect(await token2.balanceOf(alice.address)).to.be.eq(user_sum);
 
-    // Проверка что уровень Алисы - 2й
+    // Checking that Alice's level is 2nd
     expect(await staking.getLevelInfo(alice.address)).to.be.eq(TWO);
 
     await time.increase(50000);
@@ -98,7 +98,7 @@ describe("Staking", function () {
 
     user_sum = user_sum.add(_amount.mul(_level_perc).mul(time3.timestamp - time2.timestamp).div(BigNumber.from(100 * 365 * 24 * 60 * 60)));
 
-    // Проверка, что сумма полученная Алисой совпадает с той которую она должна получить по правилам стейкинга
+    // Checking that the amount received by Alice coincides with the one she should receive according to the stacking rules
     expect(await token2.balanceOf(alice.address)).to.be.eq(user_sum);
   })
 }) 

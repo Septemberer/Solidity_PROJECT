@@ -5,9 +5,9 @@ pragma solidity ^0.8.4;
 interface IStaking {
     struct UserInfo {
         uint256 amount; // How many staked tokens the user has provided
-        uint256 level; // Уровень пользователя
-        uint256 rewardDebt; // Сколько выйгрыша выводил пользователь
-        uint256 timeStart; // Время с которого считается текущий заработок
+        uint256 level; // User Level
+        uint256 rewardDebt; // How much winnings did the user withdraw
+        uint256 timeStart; // The time from which the current earnings are calculated
     }
 
     struct LevelInfo {
@@ -16,8 +16,8 @@ interface IStaking {
     }
 
     /**
-     * @notice Информация об уровне пользователя
-     * @param _user: Адрес интересующего пользователя
+     * @notice User Level Information
+     * @param _user: The address of the user of interest
      */
     function getLevelInfo(address _user) external view returns (uint256);
 }
