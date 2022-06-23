@@ -17,6 +17,12 @@ npx hardhat help
 For deploying contract on localhost:
 
 ```shell
+npx hardhat node
+```
+
+In other console
+
+```shell
 npx hardhat run --network localhost scripts/deploy.js
 ```
 

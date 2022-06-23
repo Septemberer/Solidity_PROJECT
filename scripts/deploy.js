@@ -8,11 +8,13 @@ const ONE_TOKEN = TEN.pow(DECIMALS);
 
 
 async function main() {
-  [alice, dev2, dev, minter, factory, weth] = await ethers.getSigners()
+  [alice, dev2, dev, minter] = await ethers.getSigners()
   const Token = await ethers.getContractFactory("MockERC20", minter)
   const Staking = await ethers.getContractFactory("Staking", dev)
   const CrowdSale = await ethers.getContractFactory("CrowdSale", dev2)
-  const UniswapV2Router02 = await ethers.getContractFactory("MockUniswapV2Router02", dev2)
+  const WETH = await ethers.getContractFactory("WETH", dev2)
+  const UniswapV2Factory = await ethers.getContractFactory("PancakeFactory", dev2)
+  const PancakeRouter = await ethers.getContractFactory("PancakeRouter", dev2)
 
   token1 = await Token.deploy('Token', 'TK1', ONE_TOKEN.mul(1000))
   token2 = await Token.deploy('Token', 'TK2', ONE_TOKEN.mul(1000))
@@ -28,14 +30,20 @@ async function main() {
   await staking.connect(dev).deployed()
   console.log("Staking deployed to:", staking.address);
 
-  uniswapv2router02 = await UniswapV2Router02.deploy(factory.address, weth.address)
-  await uniswapv2router02.connect(dev).deployed()
+  weth = await WETH.deploy()
+  await weth.connect(dev2).deployed()
+
+  factory = await UniswapV2Factory.deploy(dev2.address)
+  await factory.connect(dev2).deployed()
+
+  router = await PancakeRouter.deploy(factory.address, weth.address)
+  await router.connect(dev2).deployed()
 
   crowdsale = await CrowdSale.deploy(
     tokenPayment.address,
     tokenSale.address,
     staking.address,
-    uniswapv2router02.address,
+    router.address,
     10,
     60 * 60 * 24 * 30,
     ONE_TOKEN.mul(100),

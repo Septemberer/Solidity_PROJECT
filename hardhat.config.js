@@ -7,7 +7,7 @@ require('dotenv').config();
 const {
 } = process.env;
 
-const ALCHEMY_API_KEY = "belw9ZH4RyEs5nOE0ZTcohaC7jdwnUfe"
+const ALCHEMY_API_KEY = "Dh4V1_ESj5a0r1tp9J1SloXiacolIbSy"
 const GOERLI_PRIVATE_KEY = "8d591889871151e25ffebb3abe5b4218e32a67b5f6ff74bcccffda056bb79980"
 const GOERLI_API_KEY = "39UQ9JT57AG1RJVU3N5ZJD23YQYZ7QB52A"
 const DEPLOYED_CONTRACT_ADDRESS = "0x5AbC11249f29Ea6B6bF0cFA5d5eC217e66D8387a"
@@ -43,7 +43,7 @@ module.exports = {
       accounts: [`${GOERLI_PRIVATE_KEY}`],
       //accounts: {
       //mnemonic: MNEMONIC,
-      gas: 21000000,
+      gas: 2100000,
       gasPrice: 8000000000,
       saveDeployments: true,
     }
