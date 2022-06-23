@@ -40,6 +40,11 @@ contract CrowdSale is Ownable, ReentrancyGuard {
 
     mapping(uint256 => PartPool) pool;
 
+    modifier wasFinalized() {
+        require(finalized, "Liquidity has not been added yet");
+        _;
+    }
+
     event Buy(address indexed user, uint256 amount);
     event Sell(address indexed user, uint256 amount);
 
@@ -129,8 +134,7 @@ contract CrowdSale is Ownable, ReentrancyGuard {
     /**
      * @notice Начисляет юзеру приобретенные токены, может использоваться только после добавления ликвидности
      */
-    function getTokens() external nonReentrant {
-        require(finalized, "Liquidity has not been added yet");
+    function getTokens() external nonReentrant wasFinalized {
         address user = _msgSender();
         uint256 amountSell = _getSellAmount(payments[user]);
         require(amountSell > 0, "You have nothing to take off");
@@ -142,8 +146,12 @@ contract CrowdSale is Ownable, ReentrancyGuard {
     /**
      * @notice Начисляет владельцу инвестированные пользователями токены, может использоваться только после добавления ликвидности
      */
-    function widthdrawSaleTokens() external nonReentrant onlyOwner {
-        require(finalized, "Liquidity has not been added yet");
+    function widthdrawSaleTokens()
+        external
+        nonReentrant
+        onlyOwner
+        wasFinalized
+    {
         address owner = _msgSender();
         uint256 amountSell = unSoldPoolInfo();
         saleToken.transfer(owner, amountSell);
@@ -153,8 +161,12 @@ contract CrowdSale is Ownable, ReentrancyGuard {
     /**
      * @notice Начисляет владельцу непроданные токены, может использоваться только после добавления ликвидности
      */
-    function widthdrawPaymentTokens() external nonReentrant onlyOwner {
-        require(finalized, "Liquidity has not been added yet");
+    function widthdrawPaymentTokens()
+        external
+        nonReentrant
+        onlyOwner
+        wasFinalized
+    {
         address owner = _msgSender();
         uint256 amountPayment = paymentToken.balanceOf(address(this));
         paymentToken.transfer(owner, amountPayment);
