@@ -38,9 +38,9 @@ contract CrowdSale is Ownable, ReentrancyGuard {
         uint256 currentSizePart;
     }
 
-    mapping(address => uint256) payments;
+    mapping(address => uint256) private payments;
 
-    mapping(uint256 => PartPool) pool;
+    mapping(uint256 => PartPool) private pool;
 
     modifier wasFinalized() {
         require(finalized, "Liquidity has not been added yet");
@@ -72,8 +72,7 @@ contract CrowdSale is Ownable, ReentrancyGuard {
     ) {
         paymentToken = _paymentToken;
         saleToken = _saleToken;
-        uint256 decimalsPaymentToken = uint256(_paymentToken.decimals());
-        price = _price * (10**decimalsPaymentToken);
+        price = _price; // * (10**decimalsPaymentToken)
         timeStart = block.timestamp;
         timeEnd = timeStart + _timePeriod;
         percentDEX = _percentDEX;
@@ -183,6 +182,7 @@ contract CrowdSale is Ownable, ReentrancyGuard {
         require(block.timestamp > timeEnd, "Crowd Sale not ended");
         require(!finalized, "Already finalized");
         finalized = true;
+        address owner = _msgSender();
         uint256 amountPT = (percentDEX * soldPoolInfo()) / 100;
         uint256 amountST = _getSellAmount(amountPT);
         saleToken.approve(address(UV2Router), amountST);
@@ -194,7 +194,7 @@ contract CrowdSale is Ownable, ReentrancyGuard {
             amountPT,
             0,
             0,
-            address(this),
+            owner,
             block.timestamp // Reserve an hour for conducting a transaction
         );
     }

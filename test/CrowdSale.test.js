@@ -74,7 +74,7 @@ describe("CrowdSale", function () {
       tokenSale.address,
       staking.address,
       router.address,
-      10,
+      BigNumber.from(10).pow(19),
       60 * 60 * 24 * 30,
       ONE_TOKEN.mul(100),
       30
@@ -121,10 +121,10 @@ describe("CrowdSale", function () {
     await time.increase(60 * 60 * 24 * 2); // After 2 days, the user remembers that it is already possible to pick up the reward
     await crowdsale.connect(alice).getTokens()
     // Are we sure we got 5 tokens?
-    expect(await tokenSale.balanceOf(alice.address)).to.be.eq(ONE_TOKEN.mul(5)) 
+    expect(await tokenSale.balanceOf(alice.address)).to.be.eq(ONE_TOKEN.mul(5))
     await crowdsale.connect(dev2).widthdrawSellTokens()
     // And the remaining 95 were not sold and returned to the owner?
-    expect(await tokenSale.balanceOf(dev2.address)).to.be.eq(ONE_TOKEN.mul(95)) 
+    expect(await tokenSale.balanceOf(dev2.address)).to.be.eq(ONE_TOKEN.mul(95))
     await crowdsale.connect(dev2).widthdrawPaymentTokens()
     // Did you manage to collect the invested funds?
     expect(await tokenPayment.balanceOf(dev2.address)).to.be.eq(ONE_TOKEN.mul(50).mul(97).div(100))
