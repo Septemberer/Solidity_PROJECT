@@ -3,14 +3,18 @@
 pragma solidity ^0.8.4;
 
 import "./resources/pancake-swap/interfaces/IPancakeRouter02.sol";
+import "./interfaces/ICrowdSale.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import "contracts/IStaking.sol";
+import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 
-contract CrowdSale is Ownable, ReentrancyGuard {
+
+contract CrowdSale is ICrowdSale, Ownable, ReentrancyGuard, Initializable {
     using SafeERC20 for IERC20Metadata;
+
+    address public deployer;
 
     IPancakeRouter02 public UV2Router; // To use the add liquidity function
 
@@ -33,10 +37,7 @@ contract CrowdSale is Ownable, ReentrancyGuard {
 
     bool public cancelled; // Pool cancelled
 
-    struct PartPool {
-        uint256 maxSizePart;
-        uint256 currentSizePart;
-    }
+    bool private initialized;
 
     mapping(address => uint256) private payments;
 
@@ -44,6 +45,11 @@ contract CrowdSale is Ownable, ReentrancyGuard {
 
     modifier wasFinalized() {
         require(finalized, "Liquidity has not been added yet");
+        _;
+    }
+
+    modifier isDeployer() {
+        require(deployer == _msgSender(), "caller not deployer");
         _;
     }
 
@@ -70,6 +76,8 @@ contract CrowdSale is Ownable, ReentrancyGuard {
         uint256 _poolSize,
         uint256 _percentDEX
     ) {
+        require(!initialized, "Contract instance has already been initialized");
+        initialized = true;
         paymentToken = _paymentToken;
         saleToken = _saleToken;
         price = _price; // * (10**decimalsPaymentToken)
@@ -79,6 +87,44 @@ contract CrowdSale is Ownable, ReentrancyGuard {
         _initPool(_poolSize);
         staking = _staking;
         UV2Router = _UV2Router;
+        deployer = _msgSender();
+    }
+    
+    
+    /**
+     * @notice Create contract
+     * @param _paymentToken: Tokens used to accumulate investments
+     * @param _saleToken: Tokens that we sell
+     * @param _staking: Stacking linked to sales
+     * @param _price: saleToken price expressed in paymentToken
+     * @param _timePeriod: How long will the sales period last
+     * @param _poolSize: The size of the pool that will participate in sales
+     * @param _percentDEX: Percentage of the pool being sold that will be used for liquidity
+     * @param _deployer: Address of owner
+     */
+    function initialize(
+        IERC20Metadata _paymentToken,
+        IERC20Metadata _saleToken,
+        IStaking _staking,
+        IPancakeRouter02 _UV2Router,
+        uint256 _price,
+        uint256 _timePeriod,
+        uint256 _poolSize,
+        uint256 _percentDEX,
+        address _deployer
+    ) public override initializer {
+        require(!initialized, "Contract instance has already been initialized");
+        initialized = true;
+        paymentToken = _paymentToken;
+        saleToken = _saleToken;
+        price = _price; // * (10**decimalsPaymentToken)
+        timeStart = block.timestamp;
+        timeEnd = timeStart + _timePeriod;
+        percentDEX = _percentDEX;
+        _initPool(_poolSize);
+        staking = _staking;
+        UV2Router = _UV2Router;
+        deployer = _deployer;
     }
 
     /**
@@ -149,7 +195,7 @@ contract CrowdSale is Ownable, ReentrancyGuard {
     function widthdrawSellTokens()
         external
         nonReentrant
-        onlyOwner
+        isDeployer
         wasFinalized
     {
         require(!cancelled, "Cancelled");
@@ -166,7 +212,7 @@ contract CrowdSale is Ownable, ReentrancyGuard {
     function widthdrawPaymentTokens()
         external
         nonReentrant
-        onlyOwner
+        isDeployer
         wasFinalized
     {
         address owner = _msgSender();
