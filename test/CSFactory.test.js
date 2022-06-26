@@ -21,6 +21,7 @@ describe("CSFactory", function () {
   let factory;
   let weth;
   let router;
+  let csfactory;
 
   let token1;
   let token2;
@@ -46,6 +47,7 @@ describe("CSFactory", function () {
     const UniswapV2Factory = await ethers.getContractFactory("PancakeFactory", dev2)
     const PancakeRouter = await ethers.getContractFactory("PancakeRouter", dev2)
     const CSFactory = await ethers.getContractFactory("CSFactory", dev2)
+    const CrowdSale = await ethers.getContractFactory("CrowdSale", dev2)
 
     token1 = await Token.deploy('Token', 'TK1', ONE_TOKEN.mul(1000))
     token2 = await Token.deploy('Token', 'TK2', ONE_TOKEN.mul(1000))
@@ -73,7 +75,7 @@ describe("CSFactory", function () {
     csfactory = await CSFactory.deploy(dev2.address)
     await csfactory.connect(dev2).deployed()
 
-    crowdsale = await csfactory.createCrowdSourceContract(
+    await csfactory.createCrowdSourceContract(
       tokenPayment.address,
       tokenSale.address,
       staking.address,
@@ -82,14 +84,26 @@ describe("CSFactory", function () {
       60 * 60 * 24 * 30,
       ONE_TOKEN.mul(100),
       30,
-      dev.address
+      dev2.address
     )
+
+    crowdsale = await csfactory.getCrowdSale(
+      tokenPayment.address,
+      tokenSale.address,
+      staking.address,
+      router.address,
+      BigNumber.from(10).pow(19),
+      60 * 60 * 24 * 30,
+      ONE_TOKEN.mul(100),
+      30
+    )
+
 
     // Replenishing wallets
 
     await token2.connect(minter).transfer(staking.address, ONE_TOKEN.mul(10))
     await token1.connect(minter).transfer(alice.address, ONE_TOKEN.mul(100))
-    await tokenSale.connect(minter).transfer(crowdsale.address, ONE_TOKEN.mul(130))
+    await tokenSale.connect(minter).transfer(crowdsale, ONE_TOKEN.mul(130))
     await tokenPayment.connect(minter).transfer(alice.address, ONE_TOKEN.mul(2000))
 
     // Filling in the levels for staking
@@ -113,13 +127,15 @@ describe("CSFactory", function () {
   })
 
   it("Should be deployed", async function () {
-    expect(crowdsale.address).to.be.properAddress
+    expect(crowdsale).to.be.properAddress
   })
 
   it("Buy", async function () {
-    await tokenPayment.connect(alice).approve(crowdsale.address, ONE_TOKEN.mul(500))
+    await tokenPayment.connect(alice).approve(crowdsale, ONE_TOKEN.mul(500))
+
+
     await crowdsale.connect(alice).buy(ONE_TOKEN.mul(50))
-    expect(await tokenPayment.balanceOf(crowdsale.address)).to.be.eq(ONE_TOKEN.mul(50))
+    expect(await tokenPayment.balanceOf(crowdsale)).to.be.eq(ONE_TOKEN.mul(50))
     await time.increase(60 * 60 * 24 * 31); // After 31 days
     await crowdsale.connect(dev2).finalize(); // After closing the sale, we add liquidity
     await time.increase(60 * 60 * 24 * 2); // After 2 days, the user remembers that it is already possible to pick up the reward
