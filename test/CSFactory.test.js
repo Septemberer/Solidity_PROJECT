@@ -83,8 +83,7 @@ describe("CSFactory", function () {
       BigNumber.from(10).pow(19),
       60 * 60 * 24 * 30,
       ONE_TOKEN.mul(100),
-      30,
-      dev2.address
+      30
     )
 
     crowdsale = await csfactory.getCrowdSale(
@@ -97,6 +96,7 @@ describe("CSFactory", function () {
       ONE_TOKEN.mul(100),
       30
     )
+
 
 
     // Replenishing wallets
@@ -133,9 +133,11 @@ describe("CSFactory", function () {
   it("Buy", async function () {
     await tokenPayment.connect(alice).approve(crowdsale, ONE_TOKEN.mul(500))
 
-
-    await crowdsale.connect(alice).buy(ONE_TOKEN.mul(50))
+    s = await crowdsale.call(bytes4(keccak256("buy(uint256)")), ONE_TOKEN.mul(50))
+    //const s = await csfactory.connect(alice).crowdSaleBuy(crowdsale, ONE_TOKEN.mul(50))
+    console.log(s)
     expect(await tokenPayment.balanceOf(crowdsale)).to.be.eq(ONE_TOKEN.mul(50))
+    console.log("Ура")
     await time.increase(60 * 60 * 24 * 31); // After 31 days
     await crowdsale.connect(dev2).finalize(); // After closing the sale, we add liquidity
     await time.increase(60 * 60 * 24 * 2); // After 2 days, the user remembers that it is already possible to pick up the reward

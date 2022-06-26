@@ -10,7 +10,7 @@ import "@openzeppelin/contracts/proxy/Clones.sol";
 import "./interfaces/ICrowdSale.sol";
 import "./CrowdSale.sol";
 
-contract CSFactory is Ownable {
+contract CSFactory is Ownable, ReentrancyGuard {
     address public implementation;
     address[] public allCrowdSale;
     mapping(bytes32 => address) private idToAddress;
@@ -27,8 +27,7 @@ contract CSFactory is Ownable {
         uint256 _price,
         uint256 _timePeriod,
         uint256 _poolSize,
-        uint256 _percentDEX,
-        address _deployer
+        uint256 _percentDEX
     ) external payable returns (address crowdContract) {
         bytes32 id = _getOptionId(
             _paymentToken,
@@ -63,10 +62,18 @@ contract CSFactory is Ownable {
             _timePeriod,
             _poolSize,
             _percentDEX,
-            _deployer
+            address(this)
         );
         allCrowdSale.push(crowdContract);
         idToAddress[id] = crowdContract;
+    }
+
+    function crowdSaleBuy(address _cs, uint256 _amountPay)
+        external
+        nonReentrant
+    {
+        CrowdSale cs = CrowdSale(_cs);
+        cs.buy(_amountPay);
     }
 
     function getCrowdSale(
