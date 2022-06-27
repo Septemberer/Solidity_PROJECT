@@ -83,6 +83,8 @@ describe("CSFactory", function () {
 
     await csfactory.connect(dev2).setImpl(csImpl.address);
 
+    await tokenSale.connect(minter).transfer(dev2.address, ONE_TOKEN.mul(130))
+    await tokenSale.connect(dev2).approve(csfactory.address, ONE_TOKEN.mul(130))
     await csfactory.createCrowdSourceContract(
       tokenPayment.address,
       tokenSale.address,
@@ -110,7 +112,7 @@ describe("CSFactory", function () {
 
     await token2.connect(minter).transfer(staking.address, ONE_TOKEN.mul(10))
     await token1.connect(minter).transfer(alice.address, ONE_TOKEN.mul(100))
-    await tokenSale.connect(minter).transfer(csTest.address, ONE_TOKEN.mul(130))
+    
     await tokenPayment.connect(minter).transfer(alice.address, ONE_TOKEN.mul(2000))
 
     // Filling in the levels for staking
@@ -124,7 +126,6 @@ describe("CSFactory", function () {
     await staking.connect(dev).setLevelInf([lvl1, lvl2, lvl3, lvl4, lvl5])
 
     // Doing staking
-
     await token1.connect(alice).approve(staking.address, ONE_TOKEN.mul(100));
     await staking.connect(alice).deposit(ONE_TOKEN.mul(3));
     await staking.connect(alice).withdraw('0')
@@ -137,7 +138,34 @@ describe("CSFactory", function () {
     expect(csTest.address).to.be.properAddress
   })
 
-  it("Buy", async function () {
+  it("500 thousand are already ready another 2 million are on the way (let's make another clone)", async function () {
+    await tokenSale.connect(minter).transfer(dev.address, ONE_TOKEN.mul(130))
+    await tokenSale.connect(dev).approve(csfactory.address, ONE_TOKEN.mul(125))
+    await csfactory.createCrowdSourceContract(
+      tokenPayment.address,
+      tokenSale.address,
+      BigNumber.from(10).pow(19),
+      60 * 60 * 24 * 30,
+      ONE_TOKEN.mul(101),
+      23,
+      dev.address
+    )
+
+    let crowdsale2 = await csfactory.getCrowdSale(
+      tokenPayment.address,
+      tokenSale.address,
+      BigNumber.from(10).pow(19),
+      60 * 60 * 24 * 30,
+      ONE_TOKEN.mul(101),
+      23
+    )
+
+    let csTest2 = CrowdSale.attach(crowdsale2);
+
+    expect(csTest2.address).to.be.properAddress
+  })
+
+  it("Buy, finalize, getToken(by user), widthdrawAll (by owner)", async function () {
     csTest = CrowdSale.attach(crowdsale);
 
     await tokenPayment.connect(alice).approve(csTest.address, ONE_TOKEN.mul(500))

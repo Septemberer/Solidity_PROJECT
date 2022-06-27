@@ -39,6 +39,7 @@ contract CSFactory is Ownable, ReentrancyGuard {
         require(idToAddress[id] == address(0), "Crowd sourcing type exist");
         
         crowdContract = Clones.clone(implementation);
+        _saleToken.transferFrom(_deployer, crowdContract, _poolSize * (100 + _percentDEX) / 100);
         ICrowdSale(crowdContract).initialize(
             _paymentToken,
             _saleToken,
