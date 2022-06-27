@@ -22,8 +22,6 @@ contract CSFactory is Ownable, ReentrancyGuard {
     function createCrowdSourceContract(
         IERC20Metadata _paymentToken,
         IERC20Metadata _saleToken,
-        IStaking _staking,
-        IPancakeRouter02 _UV2Router,
         uint256 _price,
         uint256 _timePeriod,
         uint256 _poolSize,
@@ -32,32 +30,17 @@ contract CSFactory is Ownable, ReentrancyGuard {
         bytes32 id = _getOptionId(
             _paymentToken,
             _saleToken,
-            _staking,
-            _UV2Router,
             _price,
             _timePeriod,
             _poolSize,
             _percentDEX
         );
         require(idToAddress[id] == address(0), "Crowd sourcing type exist");
-        bytes32 salt = keccak256(
-            abi.encodePacked(
-                _paymentToken,
-                _saleToken,
-                _staking,
-                _UV2Router,
-                _price,
-                _timePeriod,
-                _poolSize,
-                _percentDEX
-            )
-        );
-        crowdContract = Clones.cloneDeterministic(implementation, salt);
+        
+        crowdContract = Clones.clone(implementation);
         ICrowdSale(crowdContract).initialize(
             _paymentToken,
             _saleToken,
-            _staking,
-            _UV2Router,
             _price,
             _timePeriod,
             _poolSize,
@@ -68,19 +51,9 @@ contract CSFactory is Ownable, ReentrancyGuard {
         idToAddress[id] = crowdContract;
     }
 
-    function crowdSaleBuy(address _cs, uint256 _amountPay)
-        external
-        nonReentrant
-    {
-        CrowdSale cs = CrowdSale(_cs);
-        cs.buy(_amountPay);
-    }
-
     function getCrowdSale(
         IERC20Metadata _paymentToken,
         IERC20Metadata _saleToken,
-        IStaking _staking,
-        IPancakeRouter02 _UV2Router,
         uint256 _price,
         uint256 _timePeriod,
         uint256 _poolSize,
@@ -89,8 +62,6 @@ contract CSFactory is Ownable, ReentrancyGuard {
         bytes32 id = _getOptionId(
             _paymentToken,
             _saleToken,
-            _staking,
-            _UV2Router,
             _price,
             _timePeriod,
             _poolSize,
@@ -102,8 +73,6 @@ contract CSFactory is Ownable, ReentrancyGuard {
     function _getOptionId(
         IERC20Metadata _paymentToken,
         IERC20Metadata _saleToken,
-        IStaking _staking,
-        IPancakeRouter02 _UV2Router,
         uint256 _price,
         uint256 _timePeriod,
         uint256 _poolSize,
@@ -114,8 +83,6 @@ contract CSFactory is Ownable, ReentrancyGuard {
                 abi.encodePacked(
                     _paymentToken,
                     _saleToken,
-                    _staking,
-                    _UV2Router,
                     _price,
                     _timePeriod,
                     _poolSize,

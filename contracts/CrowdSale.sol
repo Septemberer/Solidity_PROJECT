@@ -58,36 +58,15 @@ contract CrowdSale is ICrowdSale, Ownable, ReentrancyGuard, Initializable {
 
     /**
      * @notice Create contract
-     * @param _paymentToken: Tokens used to accumulate investments
-     * @param _saleToken: Tokens that we sell
      * @param _staking: Stacking linked to sales
-     * @param _price: saleToken price expressed in paymentToken
-     * @param _timePeriod: How long will the sales period last
-     * @param _poolSize: The size of the pool that will participate in sales
-     * @param _percentDEX: Percentage of the pool being sold that will be used for liquidity
+     * @param _UV2Router: PancakeRouter
      */
     constructor(
-        IERC20Metadata _paymentToken,
-        IERC20Metadata _saleToken,
         IStaking _staking,
-        IPancakeRouter02 _UV2Router,
-        uint256 _price,
-        uint256 _timePeriod,
-        uint256 _poolSize,
-        uint256 _percentDEX
+        IPancakeRouter02 _UV2Router
     ) {
-        require(!initialized, "Contract instance has already been initialized");
-        initialized = true;
-        paymentToken = _paymentToken;
-        saleToken = _saleToken;
-        price = _price; // * (10**decimalsPaymentToken)
-        timeStart = block.timestamp;
-        timeEnd = timeStart + _timePeriod;
-        percentDEX = _percentDEX;
-        _initPool(_poolSize);
         staking = _staking;
         UV2Router = _UV2Router;
-        deployer = _msgSender();
     }
     
     
@@ -95,7 +74,6 @@ contract CrowdSale is ICrowdSale, Ownable, ReentrancyGuard, Initializable {
      * @notice Create contract
      * @param _paymentToken: Tokens used to accumulate investments
      * @param _saleToken: Tokens that we sell
-     * @param _staking: Stacking linked to sales
      * @param _price: saleToken price expressed in paymentToken
      * @param _timePeriod: How long will the sales period last
      * @param _poolSize: The size of the pool that will participate in sales
@@ -105,8 +83,6 @@ contract CrowdSale is ICrowdSale, Ownable, ReentrancyGuard, Initializable {
     function initialize(
         IERC20Metadata _paymentToken,
         IERC20Metadata _saleToken,
-        IStaking _staking,
-        IPancakeRouter02 _UV2Router,
         uint256 _price,
         uint256 _timePeriod,
         uint256 _poolSize,
@@ -122,8 +98,6 @@ contract CrowdSale is ICrowdSale, Ownable, ReentrancyGuard, Initializable {
         timeEnd = timeStart + _timePeriod;
         percentDEX = _percentDEX;
         _initPool(_poolSize);
-        staking = _staking;
-        UV2Router = _UV2Router;
         deployer = _deployer;
     }
 

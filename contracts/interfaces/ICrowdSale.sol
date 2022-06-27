@@ -17,7 +17,6 @@ interface ICrowdSale {
      * @notice Create contract
      * @param _paymentToken: Tokens used to accumulate investments
      * @param _saleToken: Tokens that we sell
-     * @param _staking: Stacking linked to sales
      * @param _price: saleToken price expressed in paymentToken
      * @param _timePeriod: How long will the sales period last
      * @param _poolSize: The size of the pool that will participate in sales
@@ -26,8 +25,6 @@ interface ICrowdSale {
     function initialize(
         IERC20Metadata _paymentToken,
         IERC20Metadata _saleToken,
-        IStaking _staking,
-        IPancakeRouter02 _UV2Router,
         uint256 _price,
         uint256 _timePeriod,
         uint256 _poolSize,
