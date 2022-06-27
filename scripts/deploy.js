@@ -6,15 +6,35 @@ const TEN = BigNumber.from(10);
 const DECIMALS = BigNumber.from(18);
 const ONE_TOKEN = TEN.pow(DECIMALS);
 
+let staking;
+let crowdsale;
+let factory;
+let weth;
+let router;
+let csfactory;
+let csImpl;
+let csTest;
+
+let CrowdSale;
+
+let token1;
+let token2;
+let tokenPayment;
+let tokenSale;
+
+let dev;
+let dev2;
+let minter;
 
 async function main() {
-  [alice, dev2, dev, minter] = await ethers.getSigners()
+  [dev2, dev, minter] = await ethers.getSigners()
   const Token = await ethers.getContractFactory("MockERC20", minter)
   const Staking = await ethers.getContractFactory("Staking", dev)
-  const CrowdSale = await ethers.getContractFactory("CrowdSale", dev2)
   const WETH = await ethers.getContractFactory("WETH", dev2)
   const UniswapV2Factory = await ethers.getContractFactory("PancakeFactory", dev2)
   const PancakeRouter = await ethers.getContractFactory("PancakeRouter", dev2)
+  const CSFactory = await ethers.getContractFactory("CSFactory", dev2)
+  CrowdSale = await ethers.getContractFactory("CrowdSale", dev2)
 
   token1 = await Token.deploy('Token', 'TK1', ONE_TOKEN.mul(1000))
   token2 = await Token.deploy('Token', 'TK2', ONE_TOKEN.mul(1000))
@@ -39,18 +59,39 @@ async function main() {
   router = await PancakeRouter.deploy(factory.address, weth.address)
   await router.connect(dev2).deployed()
 
-  crowdsale = await CrowdSale.deploy(
+  csfactory = await CSFactory.deploy()
+  await csfactory.connect(dev2).deployed()
+  console.log("CrowdSaleFactory deployed to:", csfactory.address);
+
+  csImpl = await CrowdSale.deploy(staking.address, router.address)
+  await csImpl.connect(dev2).deployed()
+
+  await csfactory.connect(dev2).setImpl(csImpl.address);
+
+  await tokenSale.connect(minter).transfer(dev2.address, ONE_TOKEN.mul(130))
+  await tokenSale.connect(dev2).approve(csfactory.address, ONE_TOKEN.mul(130))
+  await csfactory.createCrowdSourceContract(
     tokenPayment.address,
     tokenSale.address,
-    staking.address,
-    router.address,
-    10,
+    BigNumber.from(10).pow(19),
+    60 * 60 * 24 * 30,
+    ONE_TOKEN.mul(100),
+    30,
+    dev2.address
+  )
+
+  crowdsale = await csfactory.getCrowdSale(
+    tokenPayment.address,
+    tokenSale.address,
+    BigNumber.from(10).pow(19),
     60 * 60 * 24 * 30,
     ONE_TOKEN.mul(100),
     30
   )
-  await crowdsale.connect(dev2).deployed()
-  console.log("CrowdSale deployed to:", crowdsale.address);
+
+  csTest = CrowdSale.attach(crowdsale);
+  await csTest.connect(dev2).deployed()
+  console.log("CrowdSale deployed to:", csTest.address);
 }
 
 main()
