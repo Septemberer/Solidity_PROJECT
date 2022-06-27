@@ -75,11 +75,13 @@ describe("CSFactory", function () {
     router = await PancakeRouter.deploy(factory.address, weth.address)
     await router.connect(dev2).deployed()
 
+    csfactory = await CSFactory.deploy()
+    await csfactory.connect(dev2).deployed()
+
     csImpl = await CrowdSale.deploy(staking.address, router.address)
     await csImpl.connect(dev2).deployed()
 
-    csfactory = await CSFactory.deploy(csImpl.address)
-    await csfactory.connect(dev2).deployed()
+    await csfactory.connect(dev2).setImpl(csImpl.address);
 
     await csfactory.createCrowdSourceContract(
       tokenPayment.address,
@@ -87,7 +89,8 @@ describe("CSFactory", function () {
       BigNumber.from(10).pow(19),
       60 * 60 * 24 * 30,
       ONE_TOKEN.mul(100),
-      30
+      30,
+      dev2.address
     )
 
     crowdsale = await csfactory.getCrowdSale(
@@ -138,9 +141,7 @@ describe("CSFactory", function () {
     csTest = CrowdSale.attach(crowdsale);
 
     await tokenPayment.connect(alice).approve(csTest.address, ONE_TOKEN.mul(500))
-    console.log(csTest.address)
-    const s = await csTest.buy(ONE_TOKEN.mul(50))
-    console.log(s)
+    await csTest.connect(alice).buy(ONE_TOKEN.mul(50))
     expect(await tokenPayment.balanceOf(csTest.address)).to.be.eq(ONE_TOKEN.mul(50))
     await time.increase(60 * 60 * 24 * 31); // After 31 days
     await csTest.connect(dev2).finalize(); // After closing the sale, we add liquidity

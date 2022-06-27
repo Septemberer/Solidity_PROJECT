@@ -15,7 +15,7 @@ contract CSFactory is Ownable, ReentrancyGuard {
     address[] public allCrowdSale;
     mapping(bytes32 => address) private idToAddress;
 
-    constructor(address _implementation) {
+    function setImpl (address _implementation) external onlyOwner {
         implementation = _implementation;
     }
 
@@ -25,7 +25,8 @@ contract CSFactory is Ownable, ReentrancyGuard {
         uint256 _price,
         uint256 _timePeriod,
         uint256 _poolSize,
-        uint256 _percentDEX
+        uint256 _percentDEX,
+        address _deployer
     ) external payable returns (address crowdContract) {
         bytes32 id = _getOptionId(
             _paymentToken,
@@ -45,7 +46,7 @@ contract CSFactory is Ownable, ReentrancyGuard {
             _timePeriod,
             _poolSize,
             _percentDEX,
-            address(this)
+            _deployer
         );
         allCrowdSale.push(crowdContract);
         idToAddress[id] = crowdContract;

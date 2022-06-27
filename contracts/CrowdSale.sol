@@ -10,15 +10,14 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 
-
 contract CrowdSale is ICrowdSale, Ownable, ReentrancyGuard, Initializable {
     using SafeERC20 for IERC20Metadata;
 
     address public deployer;
 
-    IPancakeRouter02 public UV2Router; // To use the add liquidity function
+    IPancakeRouter02 public immutable UV2Router; // To use the add liquidity function
 
-    IStaking public staking; // From here we will pull up information about the user level
+    IStaking public immutable staking; // From here we will pull up information about the user level
 
     uint256 public price; // saleToken price expressed in wei
 
@@ -61,15 +60,11 @@ contract CrowdSale is ICrowdSale, Ownable, ReentrancyGuard, Initializable {
      * @param _staking: Stacking linked to sales
      * @param _UV2Router: PancakeRouter
      */
-    constructor(
-        IStaking _staking,
-        IPancakeRouter02 _UV2Router
-    ) {
+    constructor(IStaking _staking, IPancakeRouter02 _UV2Router) {
         staking = _staking;
         UV2Router = _UV2Router;
     }
-    
-    
+
     /**
      * @notice Create contract
      * @param _paymentToken: Tokens used to accumulate investments
@@ -198,7 +193,7 @@ contract CrowdSale is ICrowdSale, Ownable, ReentrancyGuard, Initializable {
     /**
      * @notice Adds liquidity, is used after the close of trading, opens the opportunity to pick up the purchased tokens
      */
-    function finalize() external nonReentrant onlyOwner {
+    function finalize() external nonReentrant isDeployer {
         require(block.timestamp > timeEnd, "Crowd Sale not ended");
         require(!finalized, "Already finalized");
         finalized = true;
