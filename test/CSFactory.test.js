@@ -85,7 +85,7 @@ describe("CSFactory", function () {
 
     await tokenSale.connect(minter).transfer(dev2.address, ONE_TOKEN.mul(130))
     await tokenSale.connect(dev2).approve(csfactory.address, ONE_TOKEN.mul(130))
-    await csfactory.createCrowdSourceContract(
+    await csfactory.createCrowdSaleContract(
       tokenPayment.address,
       tokenSale.address,
       BigNumber.from(10).pow(19),
@@ -141,7 +141,7 @@ describe("CSFactory", function () {
   it("500 thousand are already ready another 2 million are on the way (let's make another clone)", async function () {
     await tokenSale.connect(minter).transfer(dev.address, ONE_TOKEN.mul(130))
     await tokenSale.connect(dev).approve(csfactory.address, ONE_TOKEN.mul(125))
-    await csfactory.createCrowdSourceContract(
+    await csfactory.createCrowdSaleContract(
       tokenPayment.address,
       tokenSale.address,
       BigNumber.from(10).pow(19),

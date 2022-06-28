@@ -84,8 +84,6 @@ contract CrowdSale is ICrowdSale, Ownable, ReentrancyGuard, Initializable {
         uint256 _percentDEX,
         address _deployer
     ) public override initializer {
-        require(!initialized, "Contract instance has already been initialized");
-        initialized = true;
         paymentToken = _paymentToken;
         saleToken = _saleToken;
         price = _price; // * (10**decimalsPaymentToken)
