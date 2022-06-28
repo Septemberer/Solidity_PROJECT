@@ -2,15 +2,12 @@ const { time } = require('@openzeppelin/test-helpers');
 const { expect } = require("chai")
 const { ethers } = require("hardhat")
 const { BigNumber } = require("ethers");
-const { divide } = require('lodash');
 
 require('dotenv').config();
 
 const {
 } = process.env;
 
-const ZERO = BigNumber.from(0);
-const ONE = BigNumber.from(1);
 const TWO = BigNumber.from(2);
 const ONE_TOKEN = BigNumber.from(10).pow(18);
 
@@ -112,7 +109,7 @@ describe("CSFactory", function () {
 
     await token2.connect(minter).transfer(staking.address, ONE_TOKEN.mul(10))
     await token1.connect(minter).transfer(alice.address, ONE_TOKEN.mul(100))
-    
+
     await tokenPayment.connect(minter).transfer(alice.address, ONE_TOKEN.mul(2000))
 
     // Filling in the levels for staking

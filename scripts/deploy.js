@@ -7,13 +7,11 @@ const DECIMALS = BigNumber.from(18);
 const ONE_TOKEN = TEN.pow(DECIMALS);
 
 let staking;
-let crowdsale;
 let factory;
 let weth;
 let router;
 let csfactory;
 let csImpl;
-let csTest;
 
 let CrowdSale;
 
@@ -50,14 +48,16 @@ async function main() {
   await staking.connect(dev).deployed()
   console.log("Staking deployed to:", staking.address);
 
-  weth = await WETH.deploy()
-  await weth.connect(dev2).deployed()
+  //weth = await WETH.deploy()
+  //await weth.connect(dev2).deployed()
 
-  factory = await UniswapV2Factory.deploy(dev2.address)
-  await factory.connect(dev2).deployed()
+  //factory = await UniswapV2Factory.deploy(dev2.address)
+  //await factory.connect(dev2).deployed()
 
-  router = await PancakeRouter.deploy(factory.address, weth.address)
-  await router.connect(dev2).deployed()
+
+  // router = await PancakeRouter.deploy(factory.address, weth.address)
+  // await router.connect(dev2).deployed()
+  router = PancakeRouter.attach(ROUTER_ADDRESS)
 
   csfactory = await CSFactory.deploy()
   await csfactory.connect(dev2).deployed()
@@ -68,30 +68,7 @@ async function main() {
 
   await csfactory.connect(dev2).setImpl(csImpl.address);
 
-  await tokenSale.connect(minter).transfer(dev2.address, ONE_TOKEN.mul(130))
-  await tokenSale.connect(dev2).approve(csfactory.address, ONE_TOKEN.mul(130))
-  await csfactory.createCrowdSaleContract(
-    tokenPayment.address,
-    tokenSale.address,
-    BigNumber.from(10).pow(19),
-    60 * 60 * 24 * 30,
-    ONE_TOKEN.mul(100),
-    30,
-    dev2.address
-  )
-
-  crowdsale = await csfactory.getCrowdSale(
-    tokenPayment.address,
-    tokenSale.address,
-    BigNumber.from(10).pow(19),
-    60 * 60 * 24 * 30,
-    ONE_TOKEN.mul(100),
-    30
-  )
-
-  csTest = CrowdSale.attach(crowdsale);
-  await csTest.connect(dev2).deployed()
-  console.log("CrowdSale deployed to:", csTest.address);
+  console.log("Implemented");
 }
 
 main()

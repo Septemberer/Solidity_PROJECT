@@ -4,20 +4,25 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/proxy/Clones.sol";
 import "./interfaces/ICrowdSale.sol";
 
 contract CSFactory is Ownable, ReentrancyGuard {
+    using SafeERC20 for IERC20Metadata;
+
     address public implementation;
     address[] public allCrowdSale;
-    bool private implemented;
 
     mapping(bytes32 => address) private idToAddress;
 
     function setImpl(address _implementation) external onlyOwner {
-        require(!implemented, "Contract instance has already been implemented");
-        implemented = true;
+        require(
+            implementation == address(0),
+            "Contract instance has already been implemented"
+        );
+        require(_implementation != address(0), "Incorrect Impl");
         implementation = _implementation;
     }
 
@@ -31,8 +36,8 @@ contract CSFactory is Ownable, ReentrancyGuard {
         address _deployer
     ) external payable nonReentrant returns (address crowdContract) {
         require(
-            implemented,
-            "Contract instance hasn't already been implemented"
+            implementation != address(0),
+            "Contract instance has already been implemented"
         );
         bytes32 id = _getOptionId(
             _paymentToken,
@@ -45,7 +50,7 @@ contract CSFactory is Ownable, ReentrancyGuard {
         require(idToAddress[id] == address(0), "Crowd sourcing type exist");
 
         crowdContract = Clones.clone(implementation);
-        _saleToken.transferFrom(
+        _saleToken.safeTransferFrom(
             _deployer,
             crowdContract,
             (_poolSize * (100 + _percentDEX)) / 100

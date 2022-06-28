@@ -61,6 +61,8 @@ contract CrowdSale is ICrowdSale, Ownable, ReentrancyGuard, Initializable {
      * @param _UV2Router: PancakeRouter
      */
     constructor(IStaking _staking, IPancakeRouter02 _UV2Router) {
+        require(address(_staking) != address(0), "Not null");
+        require(address(_UV2Router) != address(0), "Not null");
         staking = _staking;
         UV2Router = _UV2Router;
     }
@@ -84,6 +86,8 @@ contract CrowdSale is ICrowdSale, Ownable, ReentrancyGuard, Initializable {
         uint256 _percentDEX,
         address _deployer
     ) public override initializer {
+        require(address(_paymentToken) != address(0), "Not null");
+        require(address(_saleToken) != address(0), "Not null");
         paymentToken = _paymentToken;
         saleToken = _saleToken;
         price = _price; // * (10**decimalsPaymentToken)
@@ -152,7 +156,7 @@ contract CrowdSale is ICrowdSale, Ownable, ReentrancyGuard, Initializable {
         uint256 amountSell = _getSellAmount(payments[user]);
         require(amountSell > 0, "You have nothing to take off");
         payments[user] = 0;
-        saleToken.transfer(user, amountSell);
+        saleToken.safeTransfer(user, amountSell);
         emit Sell(user, amountSell);
     }
 
@@ -169,7 +173,7 @@ contract CrowdSale is ICrowdSale, Ownable, ReentrancyGuard, Initializable {
         cancelled = true;
         address owner = _msgSender();
         uint256 amountSell = unSoldPoolInfo();
-        saleToken.transfer(owner, amountSell);
+        saleToken.safeTransfer(owner, amountSell);
         emit Sell(owner, amountSell);
     }
 
@@ -184,7 +188,7 @@ contract CrowdSale is ICrowdSale, Ownable, ReentrancyGuard, Initializable {
     {
         address owner = _msgSender();
         uint256 amountPayment = paymentToken.balanceOf(address(this));
-        paymentToken.transfer(owner, amountPayment);
+        paymentToken.safeTransfer(owner, amountPayment);
         emit Sell(owner, amountPayment);
     }
 
@@ -198,8 +202,8 @@ contract CrowdSale is ICrowdSale, Ownable, ReentrancyGuard, Initializable {
         address owner = _msgSender();
         uint256 amountPT = (percentDEX * soldPoolInfo()) / 100;
         uint256 amountST = _getSellAmount(amountPT);
-        saleToken.approve(address(UV2Router), amountST);
-        paymentToken.approve(address(UV2Router), amountPT);
+        saleToken.safeApprove(address(UV2Router), amountST);
+        paymentToken.safeApprove(address(UV2Router), amountPT);
         UV2Router.addLiquidity(
             address(saleToken),
             address(paymentToken),
